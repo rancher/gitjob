@@ -240,11 +240,11 @@ func (h Handler) generateJob(obj *v1.GitJob) (*batchv1.Job, error) {
 			},
 		)
 
-                for _, envVar := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"} {
-                        if val, ok := os.LookupEnv(envVar); ok {
-                                job.Spec.Template.Spec.Containers[i].Env = append(job.Spec.Template.Spec.Containers[i].Env, corev1.EnvVar{Name: envVar, Value: val})
-                        }
-                }
+		for _, envVar := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"} {
+			if val, ok := os.LookupEnv(envVar); ok {
+				job.Spec.Template.Spec.Containers[i].Env = append(job.Spec.Template.Spec.Containers[i].Env, corev1.EnvVar{Name: envVar, Value: val})
+			}
+		}
 
 		job.Spec.Template.Spec.Containers[i].Args = append([]string{
 			"-wait_file",
