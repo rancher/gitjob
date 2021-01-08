@@ -33,6 +33,10 @@ const (
 	bundleDir          = "/etc/rancher/ssl"
 )
 
+var (
+	sshSecretVolumeMode int32 = 0600
+)
+
 func Register(ctx context.Context, cont *types.Context) {
 	h := Handler{
 		ctx: ctx,
@@ -221,7 +225,8 @@ func (h Handler) generateJob(obj *v1.GitJob) (*batchv1.Job, error) {
 				Name: "git-credential",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: obj.Spec.Git.ClientSecretName,
+						SecretName:  obj.Spec.Git.ClientSecretName,
+						DefaultMode: &sshSecretVolumeMode,
 					},
 				},
 			},
