@@ -1,5 +1,5 @@
-FROM alpine:3.12.0
-RUN apk -U --no-cache add git openssh && adduser -u 1000 -D gituser
+FROM oraclelinux:7-slim
+RUN yum update -y && yum install -y git openssh && adduser -u 1000 gituser
 COPY bin/gitjob /usr/bin/
 USER 1000
 CMD ["gitjob"]
