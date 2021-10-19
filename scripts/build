@@ -5,6 +5,7 @@ source $(dirname $0)/version
 
 cd $(dirname $0)/..
 
+# Update packages
 go get github.com/gogo/protobuf@v1.3.2
 
 mkdir -p bin
