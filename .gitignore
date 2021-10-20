@@ -5,3 +5,4 @@
 *.swp
 .idea
 /build
+Dockerfile.dapper[0-9]+
