@@ -7,9 +7,9 @@ go generate
 
 source ./scripts/version
 
-# if [ -n "$DIRTY" ]; then
-#     echo Git is dirty
-#     git status
-#     git diff
-#     exit 1
-# fi
+if [ -n "$DIRTY" ]; then
+    echo Git is dirty
+    git status
+    git diff
+    exit 1
+fi
