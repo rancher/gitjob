@@ -18,11 +18,6 @@ ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=armv6l GOLANG_ARCH_arm64=arm64 GOLAN
 
 RUN wget --no-verbose -O - https://golang.org/dl/go1.15.linux-${!GOLANG_ARCH}.tar.gz | tar -xzf - -C /usr/local
 
-RUN go get github.com/gogo/protobuf/proto && \
-    go get github.com/gogo/protobuf/jsonpb && \
-    go get github.com/gogo/protobuf/protoc-gen-gogo && \
-    go get github.com/gogo/protobuf/gogoproto
-
 RUN go get -d golang.org/x/lint/golint && \
     git -C /go/src/golang.org/x/lint/golint checkout -b current 06c8688daad7faa9da5a0c2f163a3d14aac986ca && \
     go install golang.org/x/lint/golint && \
