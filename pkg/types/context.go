@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 
-	"github.com/rancher/gitjob/pkg/generated/controllers/gitjob.cattle.io"
+	gitjob "github.com/rancher/gitjob/pkg/generated/controllers/gitjob.cattle.io"
 	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/crd"
 	"github.com/rancher/wrangler/pkg/generated/controllers/batch"
