@@ -14,7 +14,7 @@ require (
 	github.com/rancher/lasso v0.0.0-20210616224652-fc3ebd901c08
 	github.com/rancher/steve v0.0.0-20210318171316-376934558c5b
 	github.com/rancher/wrangler v0.8.4-0.20210727180331-41409b4e8965
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.4
 	github.com/whilp/git-urls v0.0.0-20191001220047-6db9661140c0
 	gopkg.in/go-playground/webhooks.v5 v5.17.0
@@ -45,7 +45,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
