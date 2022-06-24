@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/gogits/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/rancher/lasso v0.0.0-20210616224652-fc3ebd901c08
 	github.com/rancher/steve v0.0.0-20210318171316-376934558c5b
 	github.com/rancher/wrangler v0.8.4-0.20210727180331-41409b4e8965
