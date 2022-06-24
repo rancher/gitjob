@@ -15,7 +15,7 @@ require (
 	github.com/rancher/steve v0.0.0-20210318171316-376934558c5b
 	github.com/rancher/wrangler v0.8.4-0.20210727180331-41409b4e8965
 	github.com/sirupsen/logrus v1.6.0
-	github.com/urfave/cli v1.22.4
+	github.com/urfave/cli v1.22.9
 	github.com/whilp/git-urls v0.0.0-20191001220047-6db9661140c0
 	gopkg.in/go-playground/webhooks.v5 v5.17.0
 	gotest.tools v2.2.0+incompatible
