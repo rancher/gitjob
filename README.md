@@ -1,6 +1,9 @@
 gitjob
 ========
 
+[![E2E](https://github.com/rancher/gitjob/actions/workflows/e2e-ci.yml/badge.svg?event=schedule)](https://github.com/rancher/gitjob/actions/workflows/e2e-ci.yml)
+[![golangci-lint](https://github.com/rancher/gitjob/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/rancher/gitjob/actions/workflows/golangci-lint.yml)
+
 Job controller to launch kubernetes jobs based on git event
 
 ## Building
@@ -68,7 +71,7 @@ metadata:
   name: example
   namespace: default
 spec:
-  syncInterval: 15  // in seconds, default to 15 
+  syncInterval: 15  // in seconds, default to 15
   git:
     branch: master
     repo: https://github.com/StrongMonkey/gitjob-example
@@ -93,7 +96,7 @@ Note: Git repository will be cloned under `/workspace/source` by default.
 
 Two environmental variables: `COMMIT`, `EVENT_TYPE` will be added into your job spec.
 
-3. A kubernetes job will be created with specified job template. 
+3. A kubernetes job will be created with specified job template.
 
 ```bash
 NAME                    COMPLETIONS   DURATION   AGE
@@ -205,7 +208,7 @@ You can choose which event to send when creating the webhook. Gitjob currently s
 
 API types are defined in [here](./pkg/apis/gitjob.cattle.io/v1/types.go)
 
-## Contribution 
+## Contribution
 
 Part of this project is built upon [Tekton](https://github.com/tektoncd).
 
