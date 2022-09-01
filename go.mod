@@ -12,7 +12,7 @@ require (
 	github.com/gogits/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/gorilla/mux v1.8.0
 	github.com/onsi/ginkgo/v2 v2.1.6
-	github.com/onsi/gomega v1.20.1
+	github.com/onsi/gomega v1.20.2
 	github.com/rancher/lasso v0.0.0-20210616224652-fc3ebd901c08
 	github.com/rancher/steve v0.0.0-20220628235427-dbf9ef88ce8f
 	github.com/rancher/wrangler v1.0.0
