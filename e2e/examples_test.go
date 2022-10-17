@@ -33,8 +33,10 @@ var _ = Describe("Gitjob Examples", func() {
 		out, err := k.Delete("-f", testenv.AssetPath(asset))
 		Expect(err).ToNot(HaveOccurred(), out)
 
-		out, err = k.Delete("deployment", deployment)
-		Expect(err).ToNot(HaveOccurred(), out)
+		if deployment != "" {
+			out, err = k.Delete("deployment", deployment)
+			Expect(err).ToNot(HaveOccurred(), out)
+		}
 	})
 
 	When("referencing a github repo via https", func() {
@@ -79,6 +81,40 @@ var _ = Describe("Gitjob Examples", func() {
 					out, _ := k.Get("pods")
 					return out
 				}, testenv.Timeout).Should(ContainSubstring(deployment))
+			})
+		})
+	})
+
+	When("referencing a private github repo via http basic auth", func() {
+		BeforeEach(func() {
+			user := os.Getenv("BASIC_AUTH_USER")
+			pat := os.Getenv("BASIC_AUTH_PAT")
+			out, err := k.Create(
+				"secret", "generic",
+				"basic-auth-secret",
+				"--type", "kubernetes.io/basic-auth",
+				"--from-literal=username="+user,
+				"--from-literal=password="+pat,
+			)
+			Expect(err).ToNot(HaveOccurred(), out)
+		})
+
+		AfterEach(func() {
+			out, err := k.Delete("secret", "basic-auth-secret")
+			Expect(err).ToNot(HaveOccurred(), out)
+		})
+
+		When("creating a gitjob resource", func() {
+			BeforeEach(func() {
+				asset = "gitjob-private-http-repo.yaml"
+				deployment = ""
+			})
+
+			It("runs the kubectl command", func() {
+				Eventually(func() string {
+					out, _ := k.Get("configmap")
+					return out
+				}, testenv.Timeout).Should(ContainSubstring("private-http-test"))
 			})
 		})
 	})

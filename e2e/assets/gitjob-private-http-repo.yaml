@@ -1,0 +1,26 @@
+apiVersion: gitjob.cattle.io/v1
+kind: GitJob
+metadata:
+  name: example-private-http
+spec:
+  git:
+    branch: master
+    repo: https://github.com/fleetrepoci/gitjob-private.git
+    clientSecretName: basic-auth-secret
+  jobSpec:
+    template:
+      spec:
+        serviceAccountName: kubectl-apply
+        restartPolicy: "Never"
+        containers:
+          - image: "rancher/kubectl:v1.23.3"
+            name: kubectl-apply
+            command:
+              - kubectl
+            args:
+              - create
+              - configmap
+              - private-http-test
+              - --from-file
+              - deployment.yaml
+            workingDir: /workspace/source
