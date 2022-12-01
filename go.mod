@@ -21,9 +21,9 @@ require (
 	github.com/whilp/git-urls v0.0.0-20191001220047-6db9661140c0
 	gopkg.in/go-playground/webhooks.v5 v5.17.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.24.5
+	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.24.5
-	k8s.io/apimachinery v0.24.5
+	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/cli-utils v0.33.0
 )
