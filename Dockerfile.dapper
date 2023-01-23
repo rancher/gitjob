@@ -6,10 +6,10 @@ ENV HELM_VERSION v3.2.0
 ENV HELM_URL_V3=https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz
 
 RUN apk -U add bash git gcc musl-dev docker vim less file curl wget ca-certificates
-RUN go get -d golang.org/x/lint/golint && \
-    git -C /go/src/golang.org/x/lint/golint checkout -b current 06c8688daad7faa9da5a0c2f163a3d14aac986ca && \
-    go install golang.org/x/lint/golint && \
-    rm -rf /go/src
+#RUN go get -d golang.org/x/lint/golint && \
+#    git -C /go/src/golang.org/x/lint/golint checkout -b current 06c8688daad7faa9da5a0c2f163a3d14aac986ca && \
+#    go install golang.org/x/lint/golint && \
+#    rm -rf /go/src
 RUN mkdir -p /go/src/golang.org/x && \
     cd /go/src/golang.org/x && git clone https://github.com/golang/tools && \
     git -C /go/src/golang.org/x/tools checkout -b current aa82965741a9fecd12b026fbb3d3c6ed3231b8f8 && \
