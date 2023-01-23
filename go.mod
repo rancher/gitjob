@@ -13,7 +13,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/rancher/lasso v0.0.0-20210616224652-fc3ebd901c08
 	github.com/rancher/steve v0.0.0-20210318171316-376934558c5b
-	github.com/rancher/wrangler v0.8.4-0.20210727180331-41409b4e8965
+	github.com/rancher/wrangler v0.8.5-security1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/urfave/cli v1.22.4
 	github.com/whilp/git-urls v0.0.0-20191001220047-6db9661140c0
