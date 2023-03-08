@@ -20,7 +20,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli v1.22.12
 	github.com/whilp/git-urls v1.0.0
-	golang.org/x/crypto v0.5.0
+	golang.org/x/crypto v0.6.0
 	gopkg.in/go-playground/webhooks.v5 v5.17.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.24.5
