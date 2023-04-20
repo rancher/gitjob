@@ -7,6 +7,12 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.26.4
 )
 
+replace (
+	github.com/rancher/lasso => github.com/vardhaman22/lasso v1.26.4-rancher1
+	github.com/rancher/steve => github.com/vardhaman22/steve v1.26.4-rancher1
+	github.com/rancher/wrangler => github.com/vardhaman22/wrangler v1.26.4-rancher1
+)
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/gogits/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
@@ -51,7 +57,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
