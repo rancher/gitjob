@@ -23,8 +23,6 @@ import (
 	"time"
 
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
-	"github.com/rancher/lasso/pkg/client"
-	"github.com/rancher/lasso/pkg/controller"
 	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/condition"
 	"github.com/rancher/wrangler/pkg/generic"
@@ -36,236 +34,120 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 )
 
-type GitJobHandler func(string, *v1.GitJob) (*v1.GitJob, error)
-
+// GitJobController interface for managing GitJob resources.
 type GitJobController interface {
 	generic.ControllerMeta
 	GitJobClient
 
+	// OnChange runs the given handler when the controller detects a resource was changed.
 	OnChange(ctx context.Context, name string, sync GitJobHandler)
+
+	// OnRemove runs the given handler when the controller detects a resource was changed.
 	OnRemove(ctx context.Context, name string, sync GitJobHandler)
+
+	// Enqueue adds the resource with the given name to the worker queue of the controller.
 	Enqueue(namespace, name string)
+
+	// EnqueueAfter runs Enqueue after the provided duration.
 	EnqueueAfter(namespace, name string, duration time.Duration)
 
+	// Cache returns a cache for the resource type T.
 	Cache() GitJobCache
 }
 
+// GitJobClient interface for managing GitJob resources in Kubernetes.
 type GitJobClient interface {
+	// Create creates a new object and return the newly created Object or an error.
 	Create(*v1.GitJob) (*v1.GitJob, error)
+
+	// Update updates the object and return the newly updated Object or an error.
 	Update(*v1.GitJob) (*v1.GitJob, error)
+	// UpdateStatus updates the Status field of a the object and return the newly updated Object or an error.
+	// Will always return an error if the object does not have a status field.
 	UpdateStatus(*v1.GitJob) (*v1.GitJob, error)
+
+	// Delete deletes the Object in the given name.
 	Delete(namespace, name string, options *metav1.DeleteOptions) error
+
+	// Get will attempt to retrieve the resource with the specified name.
 	Get(namespace, name string, options metav1.GetOptions) (*v1.GitJob, error)
+
+	// List will attempt to find multiple resources.
 	List(namespace string, opts metav1.ListOptions) (*v1.GitJobList, error)
+
+	// Watch will start watching resources.
 	Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error)
+
+	// Patch will patch the resource with the matching name.
 	Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.GitJob, err error)
 }
 
+// GitJobCache interface for retrieving GitJob resources in memory.
 type GitJobCache interface {
+	// Get returns the resources with the specified name from the cache.
 	Get(namespace, name string) (*v1.GitJob, error)
+
+	// List will attempt to find resources from the Cache.
 	List(namespace string, selector labels.Selector) ([]*v1.GitJob, error)
 
+	// AddIndexer adds  a new Indexer to the cache with the provided name.
+	// If you call this after you already have data in the store, the results are undefined.
 	AddIndexer(indexName string, indexer GitJobIndexer)
+
+	// GetByIndex returns the stored objects whose set of indexed values
+	// for the named index includes the given indexed value.
 	GetByIndex(indexName, key string) ([]*v1.GitJob, error)
 }
 
+// GitJobHandler is function for performing any potential modifications to a GitJob resource.
+type GitJobHandler func(string, *v1.GitJob) (*v1.GitJob, error)
+
+// GitJobIndexer computes a set of indexed values for the provided object.
 type GitJobIndexer func(obj *v1.GitJob) ([]string, error)
 
-type gitJobController struct {
-	controller    controller.SharedController
-	client        *client.Client
-	gvk           schema.GroupVersionKind
-	groupResource schema.GroupResource
+// GitJobGenericController wraps wrangler/pkg/generic.Controller so that the function definitions adhere to GitJobController interface.
+type GitJobGenericController struct {
+	generic.ControllerInterface[*v1.GitJob, *v1.GitJobList]
 }
 
-func NewGitJobController(gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory) GitJobController {
-	c := controller.ForResourceKind(gvk.GroupVersion().WithResource(resource), gvk.Kind, namespaced)
-	return &gitJobController{
-		controller: c,
-		client:     c.Client(),
-		gvk:        gvk,
-		groupResource: schema.GroupResource{
-			Group:    gvk.Group,
-			Resource: resource,
-		},
+// OnChange runs the given resource handler when the controller detects a resource was changed.
+func (c *GitJobGenericController) OnChange(ctx context.Context, name string, sync GitJobHandler) {
+	c.ControllerInterface.OnChange(ctx, name, generic.ObjectHandler[*v1.GitJob](sync))
+}
+
+// OnRemove runs the given object handler when the controller detects a resource was changed.
+func (c *GitJobGenericController) OnRemove(ctx context.Context, name string, sync GitJobHandler) {
+	c.ControllerInterface.OnRemove(ctx, name, generic.ObjectHandler[*v1.GitJob](sync))
+}
+
+// Cache returns a cache of resources in memory.
+func (c *GitJobGenericController) Cache() GitJobCache {
+	return &GitJobGenericCache{
+		c.ControllerInterface.Cache(),
 	}
 }
 
-func FromGitJobHandlerToHandler(sync GitJobHandler) generic.Handler {
-	return func(key string, obj runtime.Object) (ret runtime.Object, err error) {
-		var v *v1.GitJob
-		if obj == nil {
-			v, err = sync(key, nil)
-		} else {
-			v, err = sync(key, obj.(*v1.GitJob))
-		}
-		if v == nil {
-			return nil, err
-		}
-		return v, err
-	}
+// GitJobGenericCache wraps wrangler/pkg/generic.Cache so the function definitions adhere to GitJobCache interface.
+type GitJobGenericCache struct {
+	generic.CacheInterface[*v1.GitJob]
 }
 
-func (c *gitJobController) Updater() generic.Updater {
-	return func(obj runtime.Object) (runtime.Object, error) {
-		newObj, err := c.Update(obj.(*v1.GitJob))
-		if newObj == nil {
-			return nil, err
-		}
-		return newObj, err
-	}
-}
-
-func UpdateGitJobDeepCopyOnChange(client GitJobClient, obj *v1.GitJob, handler func(obj *v1.GitJob) (*v1.GitJob, error)) (*v1.GitJob, error) {
-	if obj == nil {
-		return obj, nil
-	}
-
-	copyObj := obj.DeepCopy()
-	newObj, err := handler(copyObj)
-	if newObj != nil {
-		copyObj = newObj
-	}
-	if obj.ResourceVersion == copyObj.ResourceVersion && !equality.Semantic.DeepEqual(obj, copyObj) {
-		return client.Update(copyObj)
-	}
-
-	return copyObj, err
-}
-
-func (c *gitJobController) AddGenericHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.controller.RegisterHandler(ctx, name, controller.SharedControllerHandlerFunc(handler))
-}
-
-func (c *gitJobController) AddGenericRemoveHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), handler))
-}
-
-func (c *gitJobController) OnChange(ctx context.Context, name string, sync GitJobHandler) {
-	c.AddGenericHandler(ctx, name, FromGitJobHandlerToHandler(sync))
-}
-
-func (c *gitJobController) OnRemove(ctx context.Context, name string, sync GitJobHandler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), FromGitJobHandlerToHandler(sync)))
-}
-
-func (c *gitJobController) Enqueue(namespace, name string) {
-	c.controller.Enqueue(namespace, name)
-}
-
-func (c *gitJobController) EnqueueAfter(namespace, name string, duration time.Duration) {
-	c.controller.EnqueueAfter(namespace, name, duration)
-}
-
-func (c *gitJobController) Informer() cache.SharedIndexInformer {
-	return c.controller.Informer()
-}
-
-func (c *gitJobController) GroupVersionKind() schema.GroupVersionKind {
-	return c.gvk
-}
-
-func (c *gitJobController) Cache() GitJobCache {
-	return &gitJobCache{
-		indexer:  c.Informer().GetIndexer(),
-		resource: c.groupResource,
-	}
-}
-
-func (c *gitJobController) Create(obj *v1.GitJob) (*v1.GitJob, error) {
-	result := &v1.GitJob{}
-	return result, c.client.Create(context.TODO(), obj.Namespace, obj, result, metav1.CreateOptions{})
-}
-
-func (c *gitJobController) Update(obj *v1.GitJob) (*v1.GitJob, error) {
-	result := &v1.GitJob{}
-	return result, c.client.Update(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *gitJobController) UpdateStatus(obj *v1.GitJob) (*v1.GitJob, error) {
-	result := &v1.GitJob{}
-	return result, c.client.UpdateStatus(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *gitJobController) Delete(namespace, name string, options *metav1.DeleteOptions) error {
-	if options == nil {
-		options = &metav1.DeleteOptions{}
-	}
-	return c.client.Delete(context.TODO(), namespace, name, *options)
-}
-
-func (c *gitJobController) Get(namespace, name string, options metav1.GetOptions) (*v1.GitJob, error) {
-	result := &v1.GitJob{}
-	return result, c.client.Get(context.TODO(), namespace, name, result, options)
-}
-
-func (c *gitJobController) List(namespace string, opts metav1.ListOptions) (*v1.GitJobList, error) {
-	result := &v1.GitJobList{}
-	return result, c.client.List(context.TODO(), namespace, result, opts)
-}
-
-func (c *gitJobController) Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return c.client.Watch(context.TODO(), namespace, opts)
-}
-
-func (c *gitJobController) Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*v1.GitJob, error) {
-	result := &v1.GitJob{}
-	return result, c.client.Patch(context.TODO(), namespace, name, pt, data, result, metav1.PatchOptions{}, subresources...)
-}
-
-type gitJobCache struct {
-	indexer  cache.Indexer
-	resource schema.GroupResource
-}
-
-func (c *gitJobCache) Get(namespace, name string) (*v1.GitJob, error) {
-	obj, exists, err := c.indexer.GetByKey(namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(c.resource, name)
-	}
-	return obj.(*v1.GitJob), nil
-}
-
-func (c *gitJobCache) List(namespace string, selector labels.Selector) (ret []*v1.GitJob, err error) {
-
-	err = cache.ListAllByNamespace(c.indexer, namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.GitJob))
-	})
-
-	return ret, err
-}
-
-func (c *gitJobCache) AddIndexer(indexName string, indexer GitJobIndexer) {
-	utilruntime.Must(c.indexer.AddIndexers(map[string]cache.IndexFunc{
-		indexName: func(obj interface{}) (strings []string, e error) {
-			return indexer(obj.(*v1.GitJob))
-		},
-	}))
-}
-
-func (c *gitJobCache) GetByIndex(indexName, key string) (result []*v1.GitJob, err error) {
-	objs, err := c.indexer.ByIndex(indexName, key)
-	if err != nil {
-		return nil, err
-	}
-	result = make([]*v1.GitJob, 0, len(objs))
-	for _, obj := range objs {
-		result = append(result, obj.(*v1.GitJob))
-	}
-	return result, nil
+// AddIndexer adds  a new Indexer to the cache with the provided name.
+// If you call this after you already have data in the store, the results are undefined.
+func (c GitJobGenericCache) AddIndexer(indexName string, indexer GitJobIndexer) {
+	c.CacheInterface.AddIndexer(indexName, generic.Indexer[*v1.GitJob](indexer))
 }
 
 type GitJobStatusHandler func(obj *v1.GitJob, status v1.GitJobStatus) (v1.GitJobStatus, error)
 
 type GitJobGeneratingHandler func(obj *v1.GitJob, status v1.GitJobStatus) ([]runtime.Object, v1.GitJobStatus, error)
+
+func FromGitJobHandlerToHandler(sync GitJobHandler) generic.Handler {
+	return generic.FromObjectHandlerToHandler(generic.ObjectHandler[*v1.GitJob](sync))
+}
 
 func RegisterGitJobStatusHandler(ctx context.Context, controller GitJobController, condition condition.Cond, name string, handler GitJobStatusHandler) {
 	statusHandler := &gitJobStatusHandler{
