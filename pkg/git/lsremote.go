@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -229,6 +228,10 @@ func (g *git) setCredential(cred *corev1.Secret) error {
 
 func (g *git) gitCmd(output io.Writer, subCmd string, args ...string) error {
 	kv := fmt.Sprintf("credential.helper=%s", `/bin/sh -c 'echo "password=$GIT_PASSWORD"'`)
+	//nolint:gosec // this exec deals with user input:
+	// $GIT_PASSWORD, g.URL, branch, commit
+	// The args are validated before and the -- is used to help git
+	// distinguish between git options from other arguments.
 	cmd := exec.Command("git", append([]string{"-c", kv, subCmd, "--"}, args...)...)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("GIT_PASSWORD=%s", g.password))
 	stderrBuf := &bytes.Buffer{}
@@ -244,7 +247,7 @@ func (g *git) gitCmd(output io.Writer, subCmd string, args ...string) error {
 	}
 
 	if len(g.knownHosts) != 0 {
-		f, err := ioutil.TempFile("", "known_hosts")
+		f, err := os.CreateTemp("", "known_hosts")
 		if err != nil {
 			return err
 		}
@@ -269,7 +272,7 @@ func (g *git) gitCmd(output io.Writer, subCmd string, args ...string) error {
 	}
 
 	if len(g.caBundle) > 0 {
-		f, err := ioutil.TempFile("", "ca-pem-")
+		f, err := os.CreateTemp("", "ca-pem-")
 		if err != nil {
 			return err
 		}
@@ -298,7 +301,7 @@ func (g *git) injectAgent(cmd *exec.Cmd) (io.Closer, error) {
 		return nil, err
 	}
 
-	tmpDir, err := ioutil.TempDir("", "ssh-agent")
+	tmpDir, err := os.MkdirTemp("", "ssh-agent")
 	if err != nil {
 		return nil, err
 	}
