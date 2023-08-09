@@ -31,7 +31,6 @@ const (
 	bundleCAVolumeName = "additional-ca"
 	bundleCAFile       = "additional-ca.crt"
 	bundleDir          = "/etc/rancher/ssl"
-	defaultTTL         = 86400 // 24 hours
 )
 
 func Register(ctx context.Context, cont *types.Context) {
@@ -172,11 +171,6 @@ func (h Handler) generateJob(obj *v1.GitJob) (*batchv1.Job, error) {
 			Name:      jobName(obj),
 		},
 		Spec: obj.Spec.JobSpec,
-	}
-
-	if job.Spec.TTLSecondsAfterFinished == nil {
-		ttl := int32(defaultTTL)
-		job.Spec.TTLSecondsAfterFinished = &ttl
 	}
 
 	cloneContainer, err := h.generateCloneContainer(obj)
