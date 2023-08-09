@@ -14,11 +14,15 @@ import (
 	"github.com/rancher/gitjob/pkg/git"
 	"github.com/rancher/gitjob/pkg/types"
 	"github.com/rancher/wrangler/pkg/apply"
+	"github.com/sirupsen/logrus"
+
 	batchv1controller "github.com/rancher/wrangler/pkg/generated/controllers/batch/v1"
 	corev1controller "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/rancher/wrangler/pkg/kstatus"
 	"github.com/rancher/wrangler/pkg/name"
+
 	giturls "github.com/whilp/git-urls"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -101,10 +105,12 @@ func (h Handler) generate(obj *v1.GitJob, status v1.GitJobStatus) ([]runtime.Obj
 		result = append(result, h.generateSecret(obj))
 	}
 
+	background := metav1.DeletePropagationBackground
 	// if force delete is set, delete the job to make sure a new job is created
 	if obj.Spec.ForceUpdateGeneration != status.UpdateGeneration {
 		status.UpdateGeneration = obj.Spec.ForceUpdateGeneration
-		if err := h.batch.Delete(obj.Namespace, jobName(obj), &metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+		logrus.Infof("Force update is requested for gitjob %s/%s, deleting job", obj.Namespace, obj.Name)
+		if err := h.batch.Delete(obj.Namespace, jobName(obj), &metav1.DeleteOptions{PropagationPolicy: &background}); err != nil && !errors.IsNotFound(err) {
 			return nil, status, err
 		}
 	}
@@ -112,8 +118,9 @@ func (h Handler) generate(obj *v1.GitJob, status v1.GitJobStatus) ([]runtime.Obj
 	// if the job failed, e.g. because a helm registry was unreachable, delete the old job
 	// only retry for failed jobs, job output has a log level so check for that
 	if isJobError(obj) && strings.Contains(kstatus.Stalled.GetMessage(obj), "level=fatal") {
-		if err := h.batch.Delete(obj.Namespace, jobName(obj), &metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
-			return nil, status, err
+		logrus.Infof("Deleting failed job to trigger retry %s/%s due to: %s", obj.Namespace, jobName(obj), kstatus.Stalled.GetMessage(obj))
+		if err := h.batch.Delete(obj.Namespace, jobName(obj), &metav1.DeleteOptions{PropagationPolicy: &background}); err != nil && !errors.IsNotFound(err) {
+			return nil, status, fmt.Errorf("cannot delete failed job %s/%s: %v", obj.Namespace, jobName(obj), err)
 		}
 	}
 
@@ -133,6 +140,7 @@ func isJobError(obj *v1.GitJob) bool {
 }
 
 func (h Handler) enqueueGitJob(obj *v1.GitJob, interval int) {
+	logrus.Debugf("Enqueueing gitjob %s/%s in %d seconds", obj.Namespace, obj.Name, interval)
 	h.gitjobs.EnqueueAfter(obj.Namespace, obj.Name, time.Duration(interval)*time.Second)
 }
 
