@@ -57,6 +57,5 @@ func BuildContext(namespace string, config *rest.Config) *Context {
 		logrus.Fatal(err)
 	}
 
-	c := newContext(namespace, config)
-	return c
+	return newContext(namespace, config)
 }
