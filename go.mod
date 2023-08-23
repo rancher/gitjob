@@ -36,7 +36,10 @@ require (
 	sigs.k8s.io/cli-utils v0.33.0
 )
 
-require github.com/stretchr/testify v1.8.4
+require (
+	github.com/spf13/cobra v1.7.0
+	github.com/stretchr/testify v1.8.4
+)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -83,6 +86,7 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
