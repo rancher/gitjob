@@ -4,11 +4,14 @@ import (
 	"os"
 	"testing"
 
+	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/rancher/gitjob/internal/mocks"
-	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
+
 	corev1controller "github.com/rancher/wrangler/v2/pkg/generated/controllers/core/v1"
+	"github.com/rancher/wrangler/v2/pkg/generic/fake"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -467,7 +470,7 @@ func TestGenerateJob_EnvVars(t *testing.T) {
 }
 
 func httpSecretMock(ctrl *gomock.Controller) corev1controller.SecretCache {
-	secretmock := mocks.NewMockSecretCache(ctrl)
+	secretmock := fake.NewMockCacheInterface[*corev1.Secret](ctrl)
 	secretmock.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{},
 		Data: map[string][]byte{
@@ -481,7 +484,7 @@ func httpSecretMock(ctrl *gomock.Controller) corev1controller.SecretCache {
 }
 
 func sshSecretMock(ctrl *gomock.Controller) corev1controller.SecretCache {
-	secretmock := mocks.NewMockSecretCache(ctrl)
+	secretmock := fake.NewMockCacheInterface[*corev1.Secret](ctrl)
 	secretmock.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{},
 		Data: map[string][]byte{
