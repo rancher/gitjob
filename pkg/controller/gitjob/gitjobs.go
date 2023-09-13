@@ -250,6 +250,8 @@ func (h Handler) generateInitContainer(obj *v1.GitJob) (corev1.Container, error)
 	}
 	if obj.Spec.Git.Branch != "" {
 		args = append(args, "--branch", obj.Spec.Git.Branch)
+	} else if obj.Spec.Git.Revision != "" {
+		args = append(args, "--revision", obj.Spec.Git.Revision)
 	}
 
 	secret, err := h.secrets.Get(obj.Namespace, obj.Spec.Git.ClientSecretName)

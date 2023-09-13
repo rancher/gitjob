@@ -71,7 +71,7 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 		opts              *cmd.Options
 		expectedCloneOpts *git.CloneOptions
 	}{
-		"no auth": {
+		"branch no auth": {
 			opts: &cmd.Options{
 				Repo:   "repo",
 				Path:   "path",
@@ -83,7 +83,7 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 				ReferenceName: "master",
 			},
 		},
-		"basic auth": {
+		"branch basic auth": {
 			opts: &cmd.Options{
 				Repo:         "repo",
 				Path:         "path",
@@ -101,7 +101,7 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 				},
 			},
 		},
-		"ssh auth": {
+		"branch ssh auth": {
 			opts: &cmd.Options{
 				Repo:              "ssh://git@localhost/test/test-repo",
 				Path:              "path",

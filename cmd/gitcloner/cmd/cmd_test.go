@@ -7,7 +7,7 @@ import (
 func TestArgsAreSet(t *testing.T) {
 	mock := &clonerMock{}
 	cmd := New(mock)
-	cmd.SetArgs([]string{"test-repo", "test-path", "--branch", "master", "--ca-bundle-file", "caFile", "--username", "user",
+	cmd.SetArgs([]string{"test-repo", "test-path", "--branch", "master", "--revision", "v0.1.0", "--ca-bundle-file", "caFile", "--username", "user",
 		"--password-file", "passwordFile", "--ssh-private-key-file", "sshFile", "--insecure-skip-tls", "--known-hosts-file", "knownFile"})
 	err := cmd.Execute()
 	if err != nil {
@@ -21,6 +21,9 @@ func TestArgsAreSet(t *testing.T) {
 	}
 	if mock.opts.Branch != "master" {
 		t.Fatalf("expected branch master, got %v", mock.opts.Branch)
+	}
+	if mock.opts.Revison != "v0.1.0" {
+		t.Fatalf("expected revision v0.1.0, got %v", mock.opts.Revison)
 	}
 	if mock.opts.CABundleFile != "caFile" {
 		t.Fatalf("expected CABundleFile caFile, got %v", mock.opts.CABundleFile)

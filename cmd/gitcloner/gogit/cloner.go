@@ -36,11 +36,6 @@ func NewCloner() *Cloner {
 }
 
 func (c *Cloner) CloneRepo(opts *cmd.Options) error {
-	branch := defaultBranch
-	if opts.Branch != "" {
-		branch = opts.Branch
-	}
-
 	auth, err := createAuthFromOpts(opts)
 	if err != nil {
 		return err
@@ -50,19 +45,53 @@ func (c *Cloner) CloneRepo(opts *cmd.Options) error {
 		return err
 	}
 
-	_, err = plainClone(opts.Path, false, &git.CloneOptions{
+	if opts.Branch == "" && opts.Revison == "" {
+		opts.Branch = defaultBranch
+		return cloneBranch(opts, auth, caBundle)
+	}
+
+	if opts.Branch != "" {
+		return cloneBranch(opts, auth, caBundle)
+	}
+
+	return cloneRevision(opts, auth, caBundle)
+}
+
+func cloneBranch(opts *cmd.Options, auth transport.AuthMethod, caBundle []byte) error {
+	_, err := plainClone(opts.Path, false, &git.CloneOptions{
 		URL:             opts.Repo,
 		Auth:            auth,
 		InsecureSkipTLS: opts.InsecureSkipTLS,
 		CABundle:        caBundle,
 		SingleBranch:    true,
-		ReferenceName:   plumbing.ReferenceName(branch),
+		ReferenceName:   plumbing.ReferenceName(opts.Branch),
+	})
+
+	return err
+}
+
+func cloneRevision(opts *cmd.Options, auth transport.AuthMethod, caBundle []byte) error {
+	r, err := plainClone(opts.Path, false, &git.CloneOptions{
+		URL:             opts.Repo,
+		Auth:            auth,
+		InsecureSkipTLS: opts.InsecureSkipTLS,
+		CABundle:        caBundle,
 	})
 	if err != nil {
 		return err
 	}
+	h, err := r.ResolveRevision(plumbing.Revision(opts.Revison))
+	if err != nil {
+		return err
+	}
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return w.Checkout(&git.CheckoutOptions{
+		Hash: *h,
+	})
 }
 
 func getCABundleFromFile(path string) ([]byte, error) {
