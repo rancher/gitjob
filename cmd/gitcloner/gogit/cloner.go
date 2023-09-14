@@ -97,7 +97,7 @@ func cloneRevision(opts *cmd.Options, auth transport.AuthMethod, caBundle []byte
 func getCABundleFromFile(path string) ([]byte, error) {
 	if path != "" {
 		caBundle, err := readFile(path)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil {
 			return nil, err
 		}
 
@@ -111,7 +111,7 @@ func getCABundleFromFile(path string) ([]byte, error) {
 func createAuthFromOpts(opts *cmd.Options) (transport.AuthMethod, error) {
 	if opts.SSHPrivateKeyFile != "" {
 		privateKey, err := readFile(opts.SSHPrivateKeyFile)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil {
 			return nil, err
 		}
 		gitURL, err := giturls.Parse(opts.Repo)
@@ -124,7 +124,7 @@ func createAuthFromOpts(opts *cmd.Options) (transport.AuthMethod, error) {
 		}
 		if opts.KnownHostsFile != "" {
 			knownHosts, err := readFile(opts.KnownHostsFile)
-			if err != nil && !os.IsNotExist(err) {
+			if err != nil {
 				return nil, err
 			}
 			knownHostsCallBack, err := createKnownHostsCallBack(knownHosts)
@@ -142,7 +142,7 @@ func createAuthFromOpts(opts *cmd.Options) (transport.AuthMethod, error) {
 
 	if opts.Username != "" && opts.PasswordFile != "" {
 		password, err := readFile(opts.PasswordFile)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil {
 			return nil, err
 		}
 
