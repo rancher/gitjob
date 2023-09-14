@@ -95,16 +95,10 @@ func cloneRevision(opts *cmd.Options, auth transport.AuthMethod, caBundle []byte
 }
 
 func getCABundleFromFile(path string) ([]byte, error) {
-	if path != "" {
-		caBundle, err := readFile(path)
-		if err != nil {
-			return nil, err
-		}
-
-		return caBundle, nil
+	if path == "" {
+		return nil, nil
 	}
-
-	return nil, nil
+	return readFile(path)
 }
 
 // addGitAuthToOpts adds auth for cloning git repos based on the parameters provided in opts.

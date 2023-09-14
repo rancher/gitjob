@@ -55,10 +55,5 @@ func cloneRepoWithArgs(args []string, gitCloner GitCloner) error {
 	opts.Repo = args[0]
 	opts.Path = args[1]
 
-	err := gitCloner.CloneRepo(opts)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return gitCloner.CloneRepo(opts)
 }
