@@ -254,12 +254,12 @@ func (h Handler) generateInitContainer(obj *v1.GitJob) (corev1.Container, error)
 		args = append(args, "--revision", obj.Spec.Git.Revision)
 	}
 
-	secret, err := h.secrets.Get(obj.Namespace, obj.Spec.Git.ClientSecretName)
-	if err != nil && !errors.IsNotFound(err) {
-		return corev1.Container{}, err
-	}
+	if obj.Spec.Git.ClientSecretName != "" {
+		secret, err := h.secrets.Get(obj.Namespace, obj.Spec.Git.ClientSecretName)
+		if err != nil {
+			return corev1.Container{}, err
+		}
 
-	if !errors.IsNotFound(err) {
 		if secret.Type == corev1.SecretTypeBasicAuth {
 			volumeMounts = append(volumeMounts, corev1.VolumeMount{
 				Name:      gitCredentialVolumeName,
