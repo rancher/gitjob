@@ -242,7 +242,7 @@ func TestGenerateJob(t *testing.T) {
 
 	for _, test := range tests {
 		h := Handler{
-			Image:   "test",
+			image:   "test",
 			secrets: test.secret,
 		}
 		job, err := h.generateJob(test.gitjob)

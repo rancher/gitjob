@@ -36,7 +36,7 @@ const (
 
 func Register(ctx context.Context, cont *types.Context) {
 	h := Handler{
-		Image:   cont.Image,
+		image:   cont.Image,
 		ctx:     ctx,
 		gitjobs: cont.Gitjob.Gitjob().V1().GitJob(),
 		secrets: cont.Core.Core().V1().Secret().Cache(),
@@ -68,7 +68,7 @@ type Handler struct {
 	gitjobs v1controller.GitJobController
 	batch   batchv1controller.JobClient
 	secrets corev1controller.SecretCache
-	Image   string
+	image   string
 }
 
 func (h Handler) generate(obj *v1.GitJob, status v1.GitJobStatus) ([]runtime.Object, v1.GitJobStatus, error) {
@@ -296,7 +296,7 @@ func (h Handler) generateInitContainer(obj *v1.GitJob) (corev1.Container, error)
 			"gitcloner",
 		},
 		Args:         args,
-		Image:        h.Image,
+		Image:        h.image,
 		Name:         "gitcloner-initializer",
 		VolumeMounts: volumeMounts,
 	}, nil
