@@ -34,7 +34,7 @@ func TestArgsAreSet(t *testing.T) {
 	if mock.opts.PasswordFile != "passwordFile" {
 		t.Fatalf("expected PasswordFile passwordFile, got %v", mock.opts.PasswordFile)
 	}
-	if mock.opts.InsecureSkipTLS == false {
+	if !mock.opts.InsecureSkipTLS {
 		t.Fatalf("expected InsecureSkipTLS to be true")
 	}
 	if mock.opts.KnownHostsFile != "knownFile" {

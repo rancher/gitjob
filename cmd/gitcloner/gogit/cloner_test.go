@@ -128,7 +128,7 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 			t.Fatalf("path expected to be %v, got %v", test.opts.Path, pathCalled)
 		}
 
-		if isBareCalled != false {
+		if isBareCalled {
 			t.Fatalf("isBareCalled expected to be false, got %v", isBareCalled)
 		}
 

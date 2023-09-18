@@ -38,7 +38,7 @@ func New(gitCloner GitCloner) *cobra.Command {
 	opts = &Options{}
 	cmd.Flags().StringVarP(&opts.Branch, "branch", "b", "", "git branch")
 	cmd.Flags().StringVar(&opts.Revision, "revision", "", "git revision")
-	cmd.Flags().StringVar(&opts.CABundleFile, "ca-bundle-file", "", "ca bundle file")
+	cmd.Flags().StringVar(&opts.CABundleFile, "ca-bundle-file", "", "CA bundle file")
 	cmd.Flags().StringVarP(&opts.Username, "username", "u", "", "user name for basic auth")
 	cmd.Flags().StringVar(&opts.PasswordFile, "password-file", "", "password file for basic auth")
 	cmd.Flags().StringVar(&opts.SSHPrivateKeyFile, "ssh-private-key-file", "", "ssh private key file path")

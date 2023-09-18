@@ -69,7 +69,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		When("Public repo that contains a README.md file", func() {
+		When("cloning a public repo that contains a README.md file", func() {
 			BeforeEach(func() {
 				private = false
 				opts = &cmd.Options{
@@ -83,13 +83,13 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 				Expect(cloneErr).NotTo(HaveOccurred())
 			})
 
-			It("README.md file is present", func() {
+			It("clones the README.md file", func() {
 				_, err := os.Stat(tmp + "/README.md")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
-		When("Private repo that contains a README.md file", func() {
+		When("the cloned repo is private and contains a README.md file", func() {
 			When("No authentication is provided", func() {
 				BeforeEach(func() {
 					private = true
