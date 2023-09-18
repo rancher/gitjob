@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"os"
-
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -30,8 +27,12 @@ func New(gitCloner GitCloner) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gitcloner [REPO] [PATH]",
 		Short: "Clones a git repository",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cloneRepoWithArgs(args, gitCloner)
+			opts.Repo = args[0]
+			opts.Path = args[1]
+
+			return gitCloner.CloneRepo(opts)
 		},
 	}
 	opts = &Options{}
@@ -45,15 +46,4 @@ func New(gitCloner GitCloner) *cobra.Command {
 	cmd.Flags().StringVar(&opts.KnownHostsFile, "known-hosts-file", "", "known hosts file")
 
 	return cmd
-}
-
-func cloneRepoWithArgs(args []string, gitCloner GitCloner) error {
-	if len(args) < 2 {
-		logrus.Errorf("Usage: gitcloner [REPO] [PATH] [flags]")
-		os.Exit(1)
-	}
-	opts.Repo = args[0]
-	opts.Path = args[1]
-
-	return gitCloner.CloneRepo(opts)
 }
