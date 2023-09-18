@@ -48,10 +48,11 @@ var (
 var _ = Describe("Fleet apply gets content from git repo", func() {
 
 	var (
-		opts     *cmd.Options
-		private  bool
-		cloneErr error
-		tmp      string
+		opts          *cmd.Options
+		private       bool
+		cloneErr      error
+		tmp           string
+		initialCommit string
 	)
 
 	When("Cloning an https repo", func() {
@@ -60,7 +61,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 			url, err := getHTTPSURL(context.Background(), container)
 			Expect(err).NotTo(HaveOccurred())
-			err = createRepo(url, "assets/repo", private)
+			initialCommit, err = createRepo(url, "assets/repo", private)
 			Expect(err).NotTo(HaveOccurred())
 			opts.Repo = url + "/test/" + testRepoName
 			tmp = createTempFolder()
@@ -72,7 +73,28 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		When("cloning a public repo that contains a README.md file", func() {
+		When("cloning a public repo that contains a README.md file providing a branch", func() {
+			BeforeEach(func() {
+				private = false
+				opts = &cmd.Options{
+					InsecureSkipTLS: true,
+					Branch:          "master",
+				}
+			})
+
+			JustBeforeEach(func() {
+				c := gogit.NewCloner()
+				cloneErr := c.CloneRepo(opts)
+				Expect(cloneErr).NotTo(HaveOccurred())
+			})
+
+			It("clones the README.md file", func() {
+				_, err := os.Stat(tmp + "/README.md")
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		When("cloning a public repo that contains a README.md file providing a revision", func() {
 			BeforeEach(func() {
 				private = false
 				opts = &cmd.Options{
@@ -82,6 +104,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 
 			JustBeforeEach(func() {
 				c := gogit.NewCloner()
+				opts.Revision = initialCommit
 				cloneErr := c.CloneRepo(opts)
 				Expect(cloneErr).NotTo(HaveOccurred())
 			})
@@ -191,7 +214,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 			url, err := getHTTPSURL(context.Background(), container)
 			Expect(err).NotTo(HaveOccurred())
-			err = createRepo(url, "assets/repo", private)
+			_, err = createRepo(url, "assets/repo", private)
 			Expect(err).NotTo(HaveOccurred())
 			sshURL, err := getSSHURL(context.Background(), container)
 			Expect(err).NotTo(HaveOccurred())
@@ -315,44 +338,44 @@ func createGogsContainer() (testcontainers.Container, error) {
 }
 
 // createRepo creates a git repo for testing
-func createRepo(url string, path string, private bool) error {
+func createRepo(url string, path string, private bool) (string, error) {
 	_, err := gogsClient.CreateRepo(gogs.CreateRepoOption{
 		Name:    testRepoName,
 		Private: private,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	repoURL := url + "/" + gogsUser + "/" + testRepoName
 
 	// add initial commit
 	tmp, err := os.MkdirTemp("", testRepoName)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer os.RemoveAll(tmp)
 
 	_, err = git.PlainInit(tmp, false)
 	if err != nil {
-		return err
+		return "", err
 	}
 	r, err := git.PlainOpen(tmp)
 	if err != nil {
-		return err
+		return "", err
 	}
 	w, err := r.Worktree()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = cp.Copy(path, tmp)
 	if err != nil {
-		return err
+		return "", err
 	}
 	_, err = w.Add(".")
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = w.Commit("test commit", &git.CommitOptions{
+	commit, err := w.Commit("test commit", &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "Test user",
 			Email: "test@test.com",
@@ -360,11 +383,11 @@ func createRepo(url string, path string, private bool) error {
 		},
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	cfg, err := r.Config()
 	if err != nil {
-		return err
+		return "", err
 	}
 	cfg.Remotes["upstream"] = &config.RemoteConfig{
 		Name: "upstream",
@@ -372,7 +395,7 @@ func createRepo(url string, path string, private bool) error {
 	}
 	err = r.SetConfig(cfg)
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = r.Push(&git.PushOptions{
 		RemoteName: "upstream",
@@ -384,10 +407,10 @@ func createRepo(url string, path string, private bool) error {
 		InsecureSkipTLS: true,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return commit.String(), nil
 }
 
 func getHTTPSURL(ctx context.Context, container testcontainers.Container) (string, error) {

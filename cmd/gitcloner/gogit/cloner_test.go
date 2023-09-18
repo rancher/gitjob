@@ -45,7 +45,9 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 			x.Signer.PublicKey().Type() == y.Signer.PublicKey().Type() &&
 			cmp.Equal(x.Signer.PublicKey().Marshal(), y.Signer.PublicKey().Marshal())
 	})
-
+	errorComparer := cmp.Comparer(func(x, y error) bool {
+		return x.Error() == y.Error()
+	})
 	plainClone = func(path string, isBare bool, o *git.CloneOptions) (*git.Repository, error) {
 		pathCalled = path
 		isBareCalled = isBare
@@ -70,6 +72,7 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 	tests := map[string]struct {
 		opts              *cmd.Options
 		expectedCloneOpts *git.CloneOptions
+		expectedErr       error
 	}{
 		"branch no auth": {
 			opts: &cmd.Options{
@@ -115,25 +118,59 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 				Auth:          sshAuth,
 			},
 		},
+		"password file does not exist": {
+			opts: &cmd.Options{
+				Repo:         "repo",
+				Branch:       "master",
+				PasswordFile: "doesntexist",
+				Username:     "user",
+			},
+			expectedCloneOpts: nil,
+			expectedErr:       errors.New("file not found"),
+		},
+		"ca file does not exist": {
+			opts: &cmd.Options{
+				Repo:         "repo",
+				Branch:       "master",
+				CABundleFile: "doesntexist",
+			},
+			expectedCloneOpts: nil,
+			expectedErr:       errors.New("file not found"),
+		},
+		"ssh private key file does not exist": {
+			opts: &cmd.Options{
+				Repo:              "repo",
+				Branch:            "master",
+				SSHPrivateKeyFile: "doesntexist",
+			},
+			expectedCloneOpts: nil,
+			expectedErr:       errors.New("file not found"),
+		},
 	}
 
-	for _, test := range tests {
-		c := Cloner{}
-		err := c.CloneRepo(test.opts)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+	for name, test := range tests {
+		// clear mock vars
+		pathCalled = ""
+		cloneOptsCalled = nil
 
-		if pathCalled != test.opts.Path {
-			t.Fatalf("path expected to be %v, got %v", test.opts.Path, pathCalled)
-		}
+		t.Run(name, func(t *testing.T) {
+			c := Cloner{}
+			err := c.CloneRepo(test.opts)
+			if !cmp.Equal(err, test.expectedErr, errorComparer) {
+				t.Fatalf("err expected to be %v, got %v", test.expectedErr, err)
+			}
 
-		if isBareCalled {
-			t.Fatalf("isBareCalled expected to be false, got %v", isBareCalled)
-		}
+			if pathCalled != test.opts.Path {
+				t.Fatalf("path expected to be %v, got %v", test.opts.Path, pathCalled)
+			}
 
-		if !cmp.Equal(cloneOptsCalled, test.expectedCloneOpts, sshKeyComparer) {
-			t.Fatalf("expected options %v, got %v", test.expectedCloneOpts, cloneOptsCalled)
-		}
+			if isBareCalled {
+				t.Fatalf("isBareCalled expected to be false, got %v", isBareCalled)
+			}
+
+			if !cmp.Equal(cloneOptsCalled, test.expectedCloneOpts, sshKeyComparer) {
+				t.Fatalf("expected options %v, got %v", test.expectedCloneOpts, cloneOptsCalled)
+			}
+		})
 	}
 }
