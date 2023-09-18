@@ -2,6 +2,7 @@ package gogit
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 
 	"github.com/go-git/go-git/v5"
@@ -51,6 +52,9 @@ func (c *Cloner) CloneRepo(opts *cmd.Options) error {
 	}
 
 	if opts.Branch != "" {
+		if opts.Revision != "" {
+			logrus.Warn("Using branch for cloning the repo. Revision will be skipped.")
+		}
 		return cloneBranch(opts, auth, caBundle)
 	}
 
