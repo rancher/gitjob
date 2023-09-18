@@ -101,7 +101,7 @@ func getCABundleFromFile(path string) ([]byte, error) {
 	return readFile(path)
 }
 
-// addGitAuthToOpts adds auth for cloning git repos based on the parameters provided in opts.
+// createAuthFromOpts adds auth for cloning git repos based on the parameters provided in opts.
 func createAuthFromOpts(opts *cmd.Options) (transport.AuthMethod, error) {
 	if opts.SSHPrivateKeyFile != "" {
 		privateKey, err := readFile(opts.SSHPrivateKeyFile)
