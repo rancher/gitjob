@@ -287,16 +287,15 @@ func createGogsContainer() (testcontainers.Container, error) {
 		return nil, err
 	}
 
-	c := gogs.NewClient(url, "")
-	//nolint:gosec // need insecure TLS option for testing
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	httpClient := &http.Client{Transport: tr} // #nosec G402
-	c.SetHTTPClient(httpClient)
-
 	// create access token, we need to wait until the http server is available
 	Eventually(func() error {
+		c := gogs.NewClient(url, "")
+		//nolint:gosec // need insecure TLS option for testing
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		httpClient := &http.Client{Transport: tr} // #nosec G402
+		c.SetHTTPClient(httpClient)
 		token, err := c.CreateAccessToken(gogsUser, gogsPass, gogs.CreateAccessTokenOption{
 			Name: "test",
 		})
@@ -307,7 +306,7 @@ func createGogsContainer() (testcontainers.Container, error) {
 		gogsClient.SetHTTPClient(httpClient)
 
 		return nil
-	}, "5s", "200ms").ShouldNot(HaveOccurred())
+	}, "30s", "200ms").ShouldNot(HaveOccurred())
 
 	return container, nil
 }
