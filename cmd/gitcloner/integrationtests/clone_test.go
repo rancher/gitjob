@@ -33,8 +33,11 @@ and uses data and conf from assets/gitserver. These files are mounted into the g
 It contains an already created user whose credentials are provided as constants.
 */
 const (
-	gogsUser = "test"
-	gogsPass = "pass"
+	gogsUser      = "test"
+	gogsPass      = "pass"
+	gogsHTTPSPort = "3000"
+	gogsSSHPort   = "22"
+	testRepoName  = "test-repo"
 )
 
 var (
@@ -59,7 +62,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = createRepo(url, "assets/repo", private)
 			Expect(err).NotTo(HaveOccurred())
-			opts.Repo = url + "/test/test-repo"
+			opts.Repo = url + "/test/" + testRepoName
 			tmp = createTempFolder()
 			opts.Path = tmp
 		})
@@ -124,7 +127,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 					Expect(cloneErr).NotTo(HaveOccurred())
 				})
 
-				It("README.md file is present", func() {
+				It("clones the README.md file", func() {
 					_, err := os.Stat(tmp + "/README.md")
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -172,7 +175,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 				cloneErr = c.CloneRepo(opts)
 			})
 
-			It("README.md file is present", func() {
+			It("clones the README.md file", func() {
 				Expect(cloneErr).NotTo(HaveOccurred())
 				_, err := os.Stat(tmp + "/README.md")
 				Expect(err).NotTo(HaveOccurred())
@@ -192,7 +195,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 			sshURL, err := getSSHURL(context.Background(), container)
 			Expect(err).NotTo(HaveOccurred())
-			opts.Repo = sshURL + "/test/test-repo"
+			opts.Repo = sshURL + "/test/" + testRepoName
 			tmp = createTempFolder()
 			opts.Path = tmp
 			// create private key, and register public key in gogs
@@ -211,7 +214,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		When("Private repo that contains a README.md file", func() {
+		When("the cloned repo is private and contains a README.md file", func() {
 			BeforeEach(func() {
 				private = true
 				opts = &cmd.Options{
@@ -230,7 +233,7 @@ var _ = Describe("Fleet apply gets content from git repo", func() {
 				Expect(cloneErr).NotTo(HaveOccurred())
 			})
 
-			It("README.md file is present", func() {
+			It("clones the README.md file", func() {
 				_, err := os.Stat(tmp + "/README.md")
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -247,7 +250,7 @@ func createGogsContainer() (testcontainers.Container, error) {
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        "gogs/gogs:0.13",
-		ExposedPorts: []string{"3000/tcp", "22/tcp"},
+		ExposedPorts: []string{gogsHTTPSPort + "/tcp", gogsSSHPort + "/tcp"},
 		Mounts: testcontainers.ContainerMounts{
 			{
 				Source: testcontainers.GenericBindMountSource{HostPath: tmpDir},
@@ -313,18 +316,17 @@ func createGogsContainer() (testcontainers.Container, error) {
 
 // createRepo creates a git repo for testing
 func createRepo(url string, path string, private bool) error {
-	name := "test-repo"
 	_, err := gogsClient.CreateRepo(gogs.CreateRepoOption{
-		Name:    name,
+		Name:    testRepoName,
 		Private: private,
 	})
 	if err != nil {
 		return err
 	}
-	repoURL := url + "/" + gogsUser + "/" + name
+	repoURL := url + "/" + gogsUser + "/" + testRepoName
 
 	// add initial commit
-	tmp, err := os.MkdirTemp("", name)
+	tmp, err := os.MkdirTemp("", testRepoName)
 	if err != nil {
 		return err
 	}
@@ -389,7 +391,7 @@ func createRepo(url string, path string, private bool) error {
 }
 
 func getHTTPSURL(ctx context.Context, container testcontainers.Container) (string, error) {
-	mappedPort, err := container.MappedPort(ctx, "3000")
+	mappedPort, err := container.MappedPort(ctx, gogsHTTPSPort)
 	if err != nil {
 		return "", err
 	}
@@ -403,7 +405,7 @@ func getHTTPSURL(ctx context.Context, container testcontainers.Container) (strin
 }
 
 func getSSHURL(ctx context.Context, container testcontainers.Container) (string, error) {
-	mappedPort, err := container.MappedPort(ctx, "22")
+	mappedPort, err := container.MappedPort(ctx, gogsSSHPort)
 	if err != nil {
 		return "", err
 	}
