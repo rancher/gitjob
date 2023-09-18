@@ -8,13 +8,10 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	mocks "github.com/rancher/gitjob/internal/mocks"
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
 	"github.com/rancher/wrangler/pkg/kstatus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Gitjob Controller", func() {
@@ -23,7 +20,6 @@ var _ = Describe("Gitjob Controller", func() {
 		gitjob     *v1.GitJob
 		jobmock    *mocks.MockJobClient
 		gitjobmock *mocks.MockGitJobController
-		secretmock *mocks.MockSecretCache
 		background = metav1.DeletePropagationBackground
 	)
 
@@ -51,13 +47,10 @@ var _ = Describe("Gitjob Controller", func() {
 		jobmock = mocks.NewMockJobClient(ctrl)
 		gitjobmock = mocks.NewMockGitJobController(ctrl)
 		gitjobmock.EXPECT().EnqueueAfter(gomock.Any(), gomock.Any(), gomock.Any())
-		secretmock = mocks.NewMockSecretCache(ctrl)
-		secretmock.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errors.NewNotFound(schema.GroupResource{}, "not found"))
 
 		h = Handler{
 			batch:   jobmock,
 			gitjobs: gitjobmock,
-			secrets: secretmock,
 		}
 	})
 

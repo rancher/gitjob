@@ -9,9 +9,7 @@ import (
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
 	corev1controller "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestGenerateJob(t *testing.T) {
@@ -52,7 +50,6 @@ func TestGenerateJob(t *testing.T) {
 					},
 				},
 			},
-			secret: secretNotFoundMock(ctrl),
 		},
 		"http credentials": {
 			gitjob: &v1.GitJob{
@@ -199,7 +196,6 @@ func TestGenerateJob(t *testing.T) {
 					},
 				},
 			},
-			secret: secretNotFoundMock(ctrl),
 		},
 		"skip tls": {
 			gitjob: &v1.GitJob{
@@ -236,7 +232,6 @@ func TestGenerateJob(t *testing.T) {
 					},
 				},
 			},
-			secret: secretNotFoundMock(ctrl),
 		},
 	}
 
@@ -256,13 +251,6 @@ func TestGenerateJob(t *testing.T) {
 			t.Fatalf("expected volumes: %v, got: %v", test.expectedVolumes, job.Spec.Template.Spec.Volumes)
 		}
 	}
-}
-
-func secretNotFoundMock(ctrl *gomock.Controller) corev1controller.SecretCache {
-	secretmock := mocks.NewMockSecretCache(ctrl)
-	secretmock.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errors.NewNotFound(schema.GroupResource{}, "not found"))
-
-	return secretmock
 }
 
 func httpSecretMock(ctrl *gomock.Controller) corev1controller.SecretCache {
