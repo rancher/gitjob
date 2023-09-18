@@ -27,6 +27,11 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+/*
+These tests use gogs for testing integration with a git server. Gogs container is created with testcontainers,
+and uses data and conf from assets/gitserver. These files are mounted into the gogs container.
+It contains an already created user whose credentials are provided as constants.
+*/
 const (
 	gogsUser = "test"
 	gogsPass = "pass"
