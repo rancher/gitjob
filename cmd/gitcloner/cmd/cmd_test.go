@@ -22,8 +22,8 @@ func TestArgsAreSet(t *testing.T) {
 	if mock.opts.Branch != "master" {
 		t.Fatalf("expected branch master, got %v", mock.opts.Branch)
 	}
-	if mock.opts.Revison != "v0.1.0" {
-		t.Fatalf("expected revision v0.1.0, got %v", mock.opts.Revison)
+	if mock.opts.Revision != "v0.1.0" {
+		t.Fatalf("expected revision v0.1.0, got %v", mock.opts.Revision)
 	}
 	if mock.opts.CABundleFile != "caFile" {
 		t.Fatalf("expected CABundleFile caFile, got %v", mock.opts.CABundleFile)

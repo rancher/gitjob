@@ -15,7 +15,7 @@ type Options struct {
 	Repo              string
 	Path              string
 	Branch            string
-	Revison           string
+	Revision          string
 	CABundleFile      string
 	Username          string
 	PasswordFile      string
@@ -36,7 +36,7 @@ func New(gitCloner GitCloner) *cobra.Command {
 	}
 	opts = &Options{}
 	cmd.Flags().StringVarP(&opts.Branch, "branch", "b", "", "git branch")
-	cmd.Flags().StringVar(&opts.Revison, "revision", "", "git revision")
+	cmd.Flags().StringVar(&opts.Revision, "revision", "", "git revision")
 	cmd.Flags().StringVar(&opts.CABundleFile, "ca-bundle-file", "", "ca bundle file")
 	cmd.Flags().StringVarP(&opts.Username, "username", "u", "", "user name for basic auth")
 	cmd.Flags().StringVar(&opts.PasswordFile, "password-file", "", "password file for basic auth")

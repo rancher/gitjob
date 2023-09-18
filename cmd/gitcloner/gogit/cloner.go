@@ -45,7 +45,7 @@ func (c *Cloner) CloneRepo(opts *cmd.Options) error {
 		return err
 	}
 
-	if opts.Branch == "" && opts.Revison == "" {
+	if opts.Branch == "" && opts.Revision == "" {
 		opts.Branch = defaultBranch
 		return cloneBranch(opts, auth, caBundle)
 	}
@@ -80,7 +80,7 @@ func cloneRevision(opts *cmd.Options, auth transport.AuthMethod, caBundle []byte
 	if err != nil {
 		return err
 	}
-	h, err := r.ResolveRevision(plumbing.Revision(opts.Revison))
+	h, err := r.ResolveRevision(plumbing.Revision(opts.Revision))
 	if err != nil {
 		return err
 	}
