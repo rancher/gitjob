@@ -45,7 +45,7 @@ var (
 	gogsCABundle []byte
 )
 
-var _ = Describe("Fleet apply gets content from git repo", func() {
+var _ = Describe("Applying a git job gets content from git repo", func() {
 
 	var (
 		opts          *cmd.Options
