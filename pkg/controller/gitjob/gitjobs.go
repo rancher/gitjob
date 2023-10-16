@@ -32,7 +32,7 @@ const (
 	bundleCAFile            = "additional-ca.crt"
 	gitCredentialVolumeName = "git-credential" // #nosec G101 this is not a credential
 	gitClonerVolumeName     = "git-cloner"
-	emptyDirVolumeName      = "empty-dir"
+	emptyDirVolumeName      = "git-cloner-empty-dir"
 )
 
 func Register(ctx context.Context, cont *types.Context) {
