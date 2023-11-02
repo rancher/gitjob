@@ -10,9 +10,9 @@ log() {
 }
 
 
-# Ensure the right version of controller-gen is installed
+# Ensure the latest version of controller-gen is installed
 CONTROLLERGEN=controller-gen
-CONTROLLERGEN_VERSION=$(go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
+CONTROLLERGEN_VERSION=$(curl -sL https://api.github.com/repos/kubernetes-sigs/controller-tools/releases/latest | jq -r ".tag_name")
 if ! $CONTROLLERGEN --version | grep -q "${CONTROLLERGEN_VERSION}" ; then
   log "Downloading controller-gen ${CONTROLLERGEN_VERSION} to a temporary directory. Run 'go install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLERGEN_VERSION}' to get a persistent installation"
   GOBIN="${tmpdir}/bin" go install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLERGEN_VERSION}
