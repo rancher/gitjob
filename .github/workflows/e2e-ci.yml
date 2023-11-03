@@ -72,7 +72,6 @@ jobs:
       -
         name: Deploy
         run: |
-          go generate
           HELM_VERSION=v0.0.0
           sed -i \
               -e "s/version:.*/version: $HELM_VERSION/" \
