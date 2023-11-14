@@ -1,112 +1,115 @@
 //go:generate bash ./scripts/controller-gen-generate.sh
+
 package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/rancher/gitjob/pkg/controller"
-	"github.com/rancher/gitjob/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/rancher/gitjob/pkg/webhook"
-	"github.com/rancher/wrangler/v2/pkg/leader"
-	"github.com/rancher/wrangler/v2/pkg/ratelimit"
-	"github.com/rancher/wrangler/v2/pkg/resolvehome"
-	"github.com/rancher/wrangler/v2/pkg/signals"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/clientcmd"
+
+	gitjobv1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
+	"github.com/rancher/gitjob/pkg/controller"
+	"github.com/rancher/gitjob/pkg/git/poll"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
-	Version   = "v0.0.0-dev"
-	GitCommit = "HEAD"
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "gitjob"
-	app.Version = fmt.Sprintf("%s (%s)", Version, GitCommit)
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "kubeconfig",
-			EnvVar: "KUBECONFIG",
-		},
-		cli.StringFlag{
-			Name:   "namespace",
-			EnvVar: "NAMESPACE",
-			Value:  "kube-system",
-		},
-		cli.StringFlag{
-			Name:  "listen",
-			Value: ":8080",
-		},
-		cli.StringFlag{
-			Name:  "gitjob-image",
-			Value: "rancher/gitjob:dev",
-		},
-		cli.BoolTFlag{
-			Name: "debug",
-		},
-	}
-	app.Action = run
-
-	if err := app.Run(os.Args); err != nil {
-		logrus.Fatal(err)
-	}
+func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(gitjobv1.AddToScheme(scheme))
 }
 
-func run(c *cli.Context) {
-	logrus.Info("Starting controller")
-	ctx := signals.SetupSignalContext()
+func main() {
+	ctx := context.Background()
+	namespace := os.Getenv("NAMESPACE")
+	var metricsAddr string
+	var enableLeaderElection bool
+	var image string
+	var listen string
+	var debug bool
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8081", "The address the metric endpoint binds to.")
+	flag.StringVar(&image, "gitjob-image", "rancher/gitjob:dev", "The gitjob image that will be used in the generated job.")
+	flag.StringVar(&listen, "listen", ":8080", "The port the webhook listens.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", true,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&debug, "debug", false, "debug mode.")
+	flag.Parse()
 
-	if c.Bool("debug") {
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debugf("Loglevel set to [%v]", logrus.DebugLevel)
+	opts := zap.Options{
+		Development: debug,
 	}
+	opts.BindFlags(flag.CommandLine)
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	kubeconfig, err := resolvehome.Resolve(c.String("kubeconfig"))
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		LeaderElection:          enableLeaderElection,
+		LeaderElectionID:        "fleet-gitjob-leader",
+		LeaderElectionNamespace: namespace,
+	})
 	if err != nil {
-		logrus.Fatalf("Error resolving home dir: %s", err.Error())
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	go startWebhook(ctx, namespace, listen, mgr.GetClient(), mgr.GetCache())
+
+	setupLog.Info("starting manager")
+	if err = (&controller.GitJobReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Image:     image,
+		GitPoller: poll.NewHandler(mgr.GetClient()),
+		Log:       ctrl.Log.WithName("gitjob-reconciler"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GitJob")
+		os.Exit(1)
+	}
+
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+
+}
+
+func startWebhook(ctx context.Context, namespace string, addr string, client client.Client, cacheClient cache.Cache) {
+	setupLog.Info("Setting up webhook listener")
+	handler, err := webhook.HandleHooks(ctx, namespace, client, cacheClient)
 	if err != nil {
-		logrus.Fatalf("Error building kubeconfig: %s", err.Error())
+		setupLog.Error(err, "webhook handler can't be created")
+		os.Exit(1)
 	}
-	cfg.RateLimiter = ratelimit.None
-
-	cont := types.BuildContext(c.String("namespace"), cfg)
-	if err := cont.Start(ctx); err != nil {
-		logrus.Fatal(err)
-	}
-	cont.Image = c.String("gitjob-image")
-
-	go func() {
-		leader.RunOrDie(ctx, c.String("namespace"), "gitjob", cont.K8s, func(ctx context.Context) {
-			controller.Register(ctx, cont)
-			runtime.Must(cont.Start(ctx))
-			<-ctx.Done()
-		})
-	}()
-
-	logrus.Info("Setting up webhook listener")
-	addr := c.String("listen")
-
 	server := &http.Server{
 		Addr:    addr,
-		Handler: webhook.HandleHooks(ctx, cont),
+		Handler: handler,
 		// According to https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil {
-		logrus.Fatalf("Failed to listen on %s: %v", addr, err)
+		setupLog.Error(err, "failed to listen ", "address", addr)
+		os.Exit(1)
 	}
-
-	<-ctx.Done()
 }

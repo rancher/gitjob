@@ -253,8 +253,9 @@ var _ = Describe("Applying a git job gets content from git repo", func() {
 
 			JustBeforeEach(func() {
 				c := gogit.NewCloner()
-				cloneErr = c.CloneRepo(opts)
-				Expect(cloneErr).NotTo(HaveOccurred())
+				Eventually(func() error {
+					return c.CloneRepo(opts)
+				}).ShouldNot(HaveOccurred())
 			})
 
 			It("clones the README.md file", func() {
