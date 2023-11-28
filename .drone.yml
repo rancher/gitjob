@@ -8,178 +8,198 @@ platform:
 
 steps:
 - name: build
-  image: rancher/dapper:v0.5.2
+  image: golang:latest
   commands:
-  - dapper ci
+  - CGO_ENABLED=0 go build -o bin/gitjob
+  - CGO_ENABLED=0 go build -o bin/gitcloner ./cmd/gitcloner
+  volumes:
+  - name: cache
+    path: /drone/src/bin
+- name: build-image
+  image: docker:latest
+  commands:
+  - docker buildx create --bootstrap --name mybuilder --driver docker-container
+  - docker build --provenance=true -f package/Dockerfile -t testimg . --builder=mybuilder
+  - docker buildx build --load -t testimg --builder=mybuilder -f package/Dockerfile .
+  - docker images
   volumes:
   - name: docker
     path: /var/run/docker.sock
-
-- name: github_binary_release
-  image: plugins/github-release
-  settings:
-    api_key:
-      from_secret: github_token
-    checksum:
-      - sha256
-    checksum_file: CHECKSUMsum-amd64.txt
-    checksum_flatten: true
-    files:
-      - "dist/artifacts/*"
-  when:
-    instance:
-      - drone-publish.rancher.io
-    ref:
-      - refs/head/master
-      - refs/tags/*
-    event:
-      - tag
-
-- name: docker-publish
-  image: plugins/docker
-  settings:
-    dockerfile: package/Dockerfile
-    password:
-      from_secret: docker_password
-    repo: "rancher/gitjob"
-    tag: "${DRONE_TAG}-amd64"
-    username:
-      from_secret: docker_username
-  when:
-    instance:
-    - drone-publish.rancher.io
-    ref:
-    - refs/head/master
-    - refs/tags/*
-    event:
-    - tag
+  - name: cache
+    path: /drone/src/bin
 
 volumes:
 - name: docker
   host:
     path: /var/run/docker.sock
+- name: cache
+  temp: {}
 
----
-kind: pipeline
-name: arm64
+# - name: github_binary_release
+#   image: plugins/github-release
+#   settings:
+#     api_key:
+#       from_secret: github_token
+#     checksum:
+#       - sha256
+#     checksum_file: CHECKSUMsum-amd64.txt
+#     checksum_flatten: true
+#     files:
+#       - "dist/artifacts/*"
+#   when:
+#     instance:
+#       - drone-publish.rancher.io
+#     ref:
+#       - refs/head/master
+#       - refs/tags/*
+#     event:
+#       - tag
 
-platform:
-  os: linux
-  arch: arm64
+# - name: docker-publish
+#   image: plugins/docker
+#   settings:
+#     dockerfile: package/Dockerfile
+#     password:
+#       from_secret: docker_password
+#     repo: "rancher/gitjob"
+#     tag: "${DRONE_TAG}-amd64"
+#     username:
+#       from_secret: docker_username
+#   when:
+#     instance:
+#     - drone-publish.rancher.io
+#     ref:
+#     - refs/head/master
+#     - refs/tags/*
+#     event:
+#     - tag
 
-steps:
-- name: build
-  image: rancher/dapper:v0.5.2
-  commands:
-  - dapper ci
-  volumes:
-  - name: docker
-    path: /var/run/docker.sock
+# volumes:
+# - name: docker
+#   host:
+#     path: /var/run/docker.sock
 
-- name: docker-publish
-  image: plugins/docker
-  settings:
-    dockerfile: package/Dockerfile
-    password:
-      from_secret: docker_password
-    repo: "rancher/gitjob"
-    tag: "${DRONE_TAG}-arm64"
-    username:
-      from_secret: docker_username
-  when:
-    instance:
-    - drone-publish.rancher.io
-    ref:
-    - refs/head/master
-    - refs/tags/*
-    event:
-    - tag
+# ---
+# kind: pipeline
+# name: arm64
 
-volumes:
-- name: docker
-  host:
-    path: /var/run/docker.sock
+# platform:
+#   os: linux
+#   arch: arm64
 
----
+# steps:
+# - name: build
+#   image: rancher/dapper:v0.5.2
+#   commands:
+#   - dapper ci
+#   volumes:
+#   - name: docker
+#     path: /var/run/docker.sock
 
-kind: pipeline
-name: s390x
+# - name: docker-publish
+#   image: plugins/docker
+#   settings:
+#     dockerfile: package/Dockerfile
+#     password:
+#       from_secret: docker_password
+#     repo: "rancher/gitjob"
+#     tag: "${DRONE_TAG}-arm64"
+#     username:
+#       from_secret: docker_username
+#   when:
+#     instance:
+#     - drone-publish.rancher.io
+#     ref:
+#     - refs/head/master
+#     - refs/tags/*
+#     event:
+#     - tag
 
-platform:
-  os: linux
-  arch: amd64
+# volumes:
+# - name: docker
+#   host:
+#     path: /var/run/docker.sock
 
-node:
-  arch: s390x
+# ---
 
-steps:
-  - name: build
-    image: rancher/dapper:v0.5.8
-    commands:
-      - dapper ci
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
+# kind: pipeline
+# name: s390x
 
-  - name: docker-publish
-    image: rancher/drone-images:docker-s390x
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
-    settings:
-      dockerfile: package/Dockerfile
-      password:
-        from_secret: docker_password
-      repo: "rancher/gitjob"
-      tag: "${DRONE_TAG}-s390x"
-      username:
-        from_secret: docker_username
-    when:
-      instance:
-        - drone-publish.rancher.io
-      ref:
-        - refs/head/master
-        - refs/tags/*
-      event:
-        - tag
+# platform:
+#   os: linux
+#   arch: amd64
 
-volumes:
-  - name: docker
-    host:
-      path: /var/run/docker.sock
+# node:
+#   arch: s390x
 
----
-kind: pipeline
-name: manifest
+# steps:
+#   - name: build
+#     image: rancher/dapper:v0.5.8
+#     commands:
+#       - dapper ci
+#     volumes:
+#       - name: docker
+#         path: /var/run/docker.sock
 
-platform:
-  os: linux
-  arch: amd64
+#   - name: docker-publish
+#     image: rancher/drone-images:docker-s390x
+#     volumes:
+#       - name: docker
+#         path: /var/run/docker.sock
+#     settings:
+#       dockerfile: package/Dockerfile
+#       password:
+#         from_secret: docker_password
+#       repo: "rancher/gitjob"
+#       tag: "${DRONE_TAG}-s390x"
+#       username:
+#         from_secret: docker_username
+#     when:
+#       instance:
+#         - drone-publish.rancher.io
+#       ref:
+#         - refs/head/master
+#         - refs/tags/*
+#       event:
+#         - tag
 
-steps:
-- name: manifest
-  image: plugins/manifest:1.0.2
-  settings:
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
-    platforms:
-      - linux/amd64
-      - linux/arm64
-      - linux/s390x
-    target: "rancher/gitjob:${DRONE_TAG}"
-    template: "rancher/gitjob:${DRONE_TAG}-ARCH"
-  when:
-    instance:
-    - drone-publish.rancher.io
-    ref:
-    - refs/head/master
-    - refs/tags/*
-    event:
-    - tag
+# volumes:
+#   - name: docker
+#     host:
+#       path: /var/run/docker.sock
 
-depends_on:
-- amd64
-- arm64
-- s390x
+# ---
+# kind: pipeline
+# name: manifest
+
+# platform:
+#   os: linux
+#   arch: amd64
+
+# steps:
+# - name: manifest
+#   image: plugins/manifest:1.0.2
+#   settings:
+#     username:
+#       from_secret: docker_username
+#     password:
+#       from_secret: docker_password
+#     platforms:
+#       - linux/amd64
+#       - linux/arm64
+#       - linux/s390x
+#     target: "rancher/gitjob:${DRONE_TAG}"
+#     template: "rancher/gitjob:${DRONE_TAG}-ARCH"
+#   when:
+#     instance:
+#     - drone-publish.rancher.io
+#     ref:
+#     - refs/head/master
+#     - refs/tags/*
+#     event:
+#     - tag
+
+# depends_on:
+# - amd64
+# - arm64
+# - s390x
