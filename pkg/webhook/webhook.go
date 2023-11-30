@@ -272,27 +272,14 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 						return err
 					}
 					gitJobFomCluster.Status.Commit = revision
-
+					// if syncInterval is not set and webhook is configured, set it to 1 hour
+					if gitjob.Spec.SyncInterval == 0 {
+						gitJobFomCluster.Spec.SyncInterval = 3600
+					}
 					return w.client.Status().Update(w.ctx, &gitJobFomCluster)
 				}); err != nil {
 					logAndReturn(rw, err)
 					return
-				}
-				// if syncInterval is not set and webhook is configured, set it to 1 hour
-				if gitjob.Spec.SyncInterval == 0 {
-					if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-						var gitJobFomCluster v1.GitJob
-						err := w.client.Get(w.ctx, ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
-						if err != nil {
-							return err
-						}
-						gitJobFomCluster.Spec.SyncInterval = 3600
-
-						return w.client.Status().Update(w.ctx, &gitJobFomCluster)
-					}); err != nil {
-						logAndReturn(rw, err)
-						return
-					}
 				}
 			}
 		}
