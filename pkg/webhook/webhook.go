@@ -47,7 +47,6 @@ const (
 type Webhook struct {
 	client          client.Client
 	namespace       string
-	ctx             context.Context
 	github          *github.Webhook
 	gitlab          *gitlab.Webhook
 	bitbucket       *bitbucket.Webhook
@@ -56,11 +55,10 @@ type Webhook struct {
 	log             logr.Logger
 }
 
-func New(ctx context.Context, namespace string, client client.Client) (*Webhook, error) {
+func New(namespace string, client client.Client) (*Webhook, error) {
 	webhook := &Webhook{
 		client:    client,
 		namespace: namespace,
-		ctx:       ctx,
 		log:       ctrl.Log.WithName("webhook"),
 	}
 	err := webhook.initGitProviders()
@@ -211,7 +209,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var gitJobList v1.GitJobList
-	err = w.client.List(w.ctx, &gitJobList, &client.ListOptions{LabelSelector: labels.Everything()})
+	err = w.client.List(r.Context(), &gitJobList, &client.ListOptions{LabelSelector: labels.Everything()})
 	if err != nil {
 		logAndReturn(rw, err)
 		return
@@ -267,7 +265,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			if gitjob.Status.Commit != revision && revision != "" {
 				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 					var gitJobFomCluster v1.GitJob
-					err := w.client.Get(w.ctx, ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
+					err := w.client.Get(r.Context(), ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
 					if err != nil {
 						return err
 					}
@@ -276,7 +274,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 					if gitjob.Spec.SyncInterval == 0 {
 						gitJobFomCluster.Spec.SyncInterval = 3600
 					}
-					return w.client.Status().Update(w.ctx, &gitJobFomCluster)
+					return w.client.Status().Update(r.Context(), &gitJobFomCluster)
 				}); err != nil {
 					logAndReturn(rw, err)
 					return
@@ -290,7 +288,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 func HandleHooks(ctx context.Context, namespace string, client client.Client, clientCache cache.Cache) (http.Handler, error) {
 	root := mux.NewRouter()
-	webhook, err := New(ctx, namespace, client)
+	webhook, err := New(namespace, client)
 	if err != nil {
 		return nil, err
 	}
