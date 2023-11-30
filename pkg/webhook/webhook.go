@@ -101,7 +101,7 @@ func (w *Webhook) initGitProviders() error {
 func (w *Webhook) onSecretChange(obj interface{}) error {
 	secret, ok := obj.(*corev1.Secret)
 	if !ok {
-		return fmt.Errorf("cannot convert %v to secret", obj)
+		return fmt.Errorf("expected secret object but got %T", obj)
 	}
 	if secret.Name != webhookSecretName && secret.Namespace != w.namespace {
 		return nil
@@ -265,7 +265,6 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 
 			if gitjob.Status.Commit != revision && revision != "" {
-				// TODO retry?
 				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 					var gitJobFomCluster v1.GitJob
 					err := w.client.Get(w.ctx, ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
