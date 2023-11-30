@@ -18,8 +18,6 @@ if [ "$(uname)" = "Linux" ]; then
     fi
 fi
 
-LINKFLAGS="-X github.com/rancher/gitjob.Version=$VERSION"
-LINKFLAGS="-X github.com/rancher/gitjob.GitCommit=$COMMIT $LINKFLAGS"
 CGO_ENABLED=0 go build -gcflags="all=${GCFLAGS}" -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/gitjob
 CGO_ENABLED=0 go build -gcflags="all=${GCFLAGS}" -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/gitcloner ./cmd/gitcloner
 
