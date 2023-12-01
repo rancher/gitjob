@@ -2,7 +2,6 @@ package poll
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -86,7 +85,6 @@ func (w *Watch) startFetchingEverySyncInterval(ctx context.Context, ticker *time
 
 func (w *Watch) fetchLatestCommitAndUpdateStatus(ctx context.Context) {
 	commit, err := w.fetcher.LatestCommit(ctx, &w.gitJob, w.client)
-	fmt.Println(commit)
 	if err != nil {
 		w.log.Error(err, "error fetching commit", "gitjob name", w.gitJob.Name)
 	}
