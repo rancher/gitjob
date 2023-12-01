@@ -56,7 +56,7 @@ func (h *Handler) AddOrModifyGitRepoWatch(ctx context.Context, gitJob v1.GitJob)
 	}
 }
 
-// CleanUpWatches removes all watches that have a gitjob that it is not present in the cluster.
+// CleanUpWatches removes all watches whose gitjob is not present in the cluster.
 func (h *Handler) CleanUpWatches(ctx context.Context) {
 	var gitJob v1.GitJob
 	for key, watch := range h.watches {

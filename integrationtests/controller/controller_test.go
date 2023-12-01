@@ -21,7 +21,7 @@ const (
 
 var _ = Describe("GitJob controller", func() {
 
-	When("Create a new GitJob", func() {
+	When("a new GitJob is created", func() {
 		var (
 			gitJob     v1.GitJob
 			gitJobName string
@@ -34,19 +34,19 @@ var _ = Describe("GitJob controller", func() {
 			Expect(k8sClient.Create(ctx, &gitJob)).ToNot(HaveOccurred())
 			Expect(simulateGitPollerUpdatingCommitInStatus(gitJob, commit)).ToNot(HaveOccurred())
 
-			By("Job is created")
+			By("Creating a job")
 			Eventually(func() error {
 				jobName = name.SafeConcatName(gitJobName, name.Hex(repo+commit, 5))
 				return k8sClient.Get(ctx, types.NamespacedName{Name: jobName, Namespace: gitJobNamespace}, &job)
 			}).Should(Not(HaveOccurred()))
 		})
 
-		When("Job complete successfully", func() {
+		When("a job completes successfully", func() {
 			BeforeEach(func() {
 				gitJobName = "success"
 			})
 
-			It("LastExecutedCommit and JobStatus is set in GitJob", func() {
+			It("sets LastExecutedCommit and JobStatus in GitJob", func() {
 				// simulate job was successful
 				job.Status.Succeeded = 1
 				job.Status.Conditions = []batchv1.JobCondition{
@@ -69,7 +69,7 @@ var _ = Describe("GitJob controller", func() {
 				gitJobName = "fail"
 			})
 
-			It("JobStatus is set in GitJob", func() {
+			It("sets JobStatus in GitJob", func() {
 				// simulate job has failed
 				job.Status.Failed = 1
 				job.Status.Conditions = []batchv1.JobCondition{
@@ -86,7 +86,7 @@ var _ = Describe("GitJob controller", func() {
 					return gitJob.Status.LastExecutedCommit != commit && gitJob.Status.JobStatus == "Failed"
 				}).Should(BeTrue())
 
-				By("Verify Job is deleted if Spec.Generation changed")
+				By("verifying that the job is deleted if Spec.Generation changed")
 				Expect(simulateIncreaseGitJobGeneration(gitJob)).ToNot(HaveOccurred())
 				Eventually(func() bool {
 					jobName = name.SafeConcatName(gitJobName, name.Hex(repo+commit, 5))
@@ -108,7 +108,7 @@ var _ = Describe("GitJob controller", func() {
 			Expect(k8sClient.Create(ctx, &gitJob)).ToNot(HaveOccurred())
 			Expect(simulateGitPollerUpdatingCommitInStatus(gitJob, commit)).ToNot(HaveOccurred())
 
-			By("Job is created")
+			By("creating a Job")
 			Eventually(func() error {
 				jobName := name.SafeConcatName(gitJobName, name.Hex(repo+commit, 5))
 				return k8sClient.Get(ctx, types.NamespacedName{Name: jobName, Namespace: gitJobNamespace}, &job)
@@ -119,7 +119,7 @@ var _ = Describe("GitJob controller", func() {
 			BeforeEach(func() {
 				gitJobName = "new-commit"
 			})
-			It("A new Job is created", func() {
+			It("creates a new Job", func() {
 				const newCommit = "9ca3a0adbbba32"
 				Expect(simulateGitPollerUpdatingCommitInStatus(gitJob, newCommit)).ToNot(HaveOccurred())
 				Eventually(func() error {
@@ -153,7 +153,7 @@ var _ = Describe("GitJob controller", func() {
 			gitJobName = "force-deletion"
 		})
 
-		It("Verify Job is deleted", func() {
+		It("Verifies that the Job is deleted", func() {
 			Eventually(func() bool {
 				return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: jobName, Namespace: gitJobNamespace}, &job))
 			}).Should(BeTrue())

@@ -22,7 +22,7 @@ type GitFetcher interface {
 	LatestCommit(ctx context.Context, gitjob *v1.GitJob, client client.Client) (string, error)
 }
 
-// Watch fetches the latest commit of all git repositories referenced by gitJobs with the syncInterval provided.
+// Watch fetches the latest commit of a git repository referenced by a gitJob with the syncInterval provided.
 type Watch struct {
 	gitJob  v1.GitJob
 	client  client.Client

@@ -68,7 +68,7 @@ func main() {
 		LeaderElectionNamespace: namespace,
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "unable to create manager")
 		os.Exit(1)
 	}
 
