@@ -87,6 +87,7 @@ func (w *Watch) fetchLatestCommitAndUpdateStatus(ctx context.Context) {
 	commit, err := w.fetcher.LatestCommit(ctx, &w.gitJob, w.client)
 	if err != nil {
 		w.log.Error(err, "error fetching commit", "gitjob name", w.gitJob.Name)
+		return
 	}
 	if w.gitJob.Status.Commit != commit {
 		w.log.Info("new commit found", "gitjob name", w.gitJob.Name, "commit", commit)
