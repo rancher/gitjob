@@ -87,7 +87,7 @@ func (r *GitJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Name:      jobName(&gitJob),
 	}, &job)
 	if err != nil && !errors.IsNotFound(err) {
-		return ctrl.Result{}, fmt.Errorf("error retreiving gitJob: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error retrieving gitJob: %v", err)
 	}
 
 	if errors.IsNotFound(err) && gitJob.Status.Commit != "" {
