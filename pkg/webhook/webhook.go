@@ -106,26 +106,31 @@ func (w *Webhook) onSecretChange(obj interface{}) error {
 	}
 
 	var err error
-	w.github, err = github.New(github.Options.Secret(string(secret.Data[githubKey])))
+	github, err := github.New(github.Options.Secret(string(secret.Data[githubKey])))
 	if err != nil {
 		return err
 	}
-	w.gitlab, err = gitlab.New(gitlab.Options.Secret(string(secret.Data[gitlabKey])))
+	w.github = github
+	gitlab, err := gitlab.New(gitlab.Options.Secret(string(secret.Data[gitlabKey])))
 	if err != nil {
 		return err
 	}
-	w.bitbucket, err = bitbucket.New(bitbucket.Options.UUID(string(secret.Data[bitbucketKey])))
+	w.gitlab = gitlab
+	bitbucket, err := bitbucket.New(bitbucket.Options.UUID(string(secret.Data[bitbucketKey])))
 	if err != nil {
 		return err
 	}
-	w.bitbucketServer, err = bitbucketserver.New(bitbucketserver.Options.Secret(string(secret.Data[bitbucketServerKey])))
+	w.bitbucket = bitbucket
+	bitbucketServer, err := bitbucketserver.New(bitbucketserver.Options.Secret(string(secret.Data[bitbucketServerKey])))
 	if err != nil {
 		return err
 	}
-	w.gogs, err = gogs.New(gogs.Options.Secret(string(secret.Data[gogsKey])))
+	w.bitbucketServer = bitbucketServer
+	gogs, err := gogs.New(gogs.Options.Secret(string(secret.Data[gogsKey])))
 	if err != nil {
 		return err
 	}
+	w.gogs = gogs
 
 	return nil
 }
