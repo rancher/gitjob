@@ -124,7 +124,7 @@ func generationOrCommitChangedPredicate() predicate.Predicate {
 }
 
 func (r *GitJobReconciler) createJob(ctx context.Context, gitJob *v1.GitJob) error {
-	job, err := r.generateJob(ctx, gitJob)
+	job, err := r.newJob(ctx, gitJob)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func caBundleName(obj *v1.GitJob) string {
 	return fmt.Sprintf("%s-cabundle", obj.Name)
 }
 
-func (r *GitJobReconciler) generateJob(ctx context.Context, obj *v1.GitJob) (*batchv1.Job, error) {
+func (r *GitJobReconciler) newJob(ctx context.Context, obj *v1.GitJob) (*batchv1.Job, error) {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
