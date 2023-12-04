@@ -5,9 +5,12 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,7 +39,14 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
+	ctx := ctrl.SetupSignalHandler()
+	if err := run(ctx); err != nil {
+		setupLog.Error(err, "error running gitjob")
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	namespace := os.Getenv("NAMESPACE")
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -50,13 +60,12 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&debug, "debug", false, "debug mode.")
-	flag.Parse()
-
 	opts := zap.Options{
 		Development: debug,
 	}
 	opts.BindFlags(flag.CommandLine)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	flag.Parse()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -68,37 +77,38 @@ func main() {
 		LeaderElectionNamespace: namespace,
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to create manager")
-		os.Exit(1)
+		return err
 	}
 
-	go startWebhook(ctx, namespace, listen, mgr.GetClient(), mgr.GetCache())
+	group := errgroup.Group{}
 
-	setupLog.Info("starting manager")
-	if err = (&controller.GitJobReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Image:     image,
-		GitPoller: poll.NewHandler(mgr.GetClient()),
-		Log:       ctrl.Log.WithName("gitjob-reconciler"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "GitJob")
-		os.Exit(1)
-	}
+	group.Go(func() error {
+		return startWebhook(ctx, namespace, listen, mgr.GetClient(), mgr.GetCache())
+	})
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
+	group.Go(func() error {
+		setupLog.Info("starting manager")
+		if err = (&controller.GitJobReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Image:     image,
+			GitPoller: poll.NewHandler(mgr.GetClient()),
+			Log:       ctrl.Log.WithName("gitjob-reconciler"),
+		}).SetupWithManager(mgr); err != nil {
+			return err
+		}
 
+		return mgr.Start(ctx)
+	})
+
+	return group.Wait()
 }
 
-func startWebhook(ctx context.Context, namespace string, addr string, client client.Client, cacheClient cache.Cache) {
+func startWebhook(ctx context.Context, namespace string, addr string, client client.Client, cacheClient cache.Cache) error {
 	setupLog.Info("Setting up webhook listener")
 	handler, err := webhook.HandleHooks(ctx, namespace, client, cacheClient)
 	if err != nil {
-		setupLog.Error(err, "webhook handler can't be created")
-		os.Exit(1)
+		return fmt.Errorf("webhook handler can't be created: %w", err)
 	}
 	server := &http.Server{
 		Addr:    addr,
@@ -108,8 +118,14 @@ func startWebhook(ctx context.Context, namespace string, addr string, client cli
 		WriteTimeout:      10 * time.Second,
 	}
 
+	go func() {
+		<-ctx.Done()
+		server.Shutdown(context.Background())
+	}()
+
 	if err := server.ListenAndServe(); err != nil {
-		setupLog.Error(err, "failed to listen ", "address", addr)
-		os.Exit(1)
+		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
+
+	return nil
 }
