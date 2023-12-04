@@ -134,6 +134,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// credit from https://github.com/argoproj/argo-cd/blob/97003caebcaafe1683e71934eb483a88026a4c33/util/webhook/webhook.go#L327-L350
 	var payload interface{}
 	var err error
+	ctx := r.Context()
 
 	switch {
 	//Gogs needs to be checked before Github since it carries both Gogs and (incompatible) Github headers
@@ -209,7 +210,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var gitJobList v1.GitJobList
-	err = w.client.List(r.Context(), &gitJobList, &client.ListOptions{LabelSelector: labels.Everything()})
+	err = w.client.List(ctx, &gitJobList, &client.ListOptions{LabelSelector: labels.Everything()})
 	if err != nil {
 		logAndReturn(rw, err)
 		return
@@ -265,7 +266,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			if gitjob.Status.Commit != revision && revision != "" {
 				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 					var gitJobFomCluster v1.GitJob
-					err := w.client.Get(r.Context(), ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
+					err := w.client.Get(ctx, ktypes.NamespacedName{Name: gitjob.Name, Namespace: gitjob.Namespace}, &gitJobFomCluster)
 					if err != nil {
 						return err
 					}
@@ -274,7 +275,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 					if gitjob.Spec.SyncInterval == 0 {
 						gitJobFomCluster.Spec.SyncInterval = webhookDefaultSyncInterval
 					}
-					return w.client.Status().Update(r.Context(), &gitJobFomCluster)
+					return w.client.Status().Update(ctx, &gitJobFomCluster)
 				}); err != nil {
 					logAndReturn(rw, err)
 					return
