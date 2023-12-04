@@ -32,13 +32,13 @@ import (
 )
 
 const (
-	webhookSecretName = "gitjob-webhook" //nolint:gosec // this is a resource name
-
-	githubKey          = "github"
-	gitlabKey          = "gitlab"
-	bitbucketKey       = "bitbucket"
-	bitbucketServerKey = "bitbucket-server"
-	gogsKey            = "gogs"
+	webhookSecretName          = "gitjob-webhook" //nolint:gosec // this is a resource name
+	webhookDefaultSyncInterval = 3600
+	githubKey                  = "github"
+	gitlabKey                  = "gitlab"
+	bitbucketKey               = "bitbucket"
+	bitbucketServerKey         = "bitbucket-server"
+	gogsKey                    = "gogs"
 
 	branchRefPrefix = "refs/heads/"
 	tagRefPrefix    = "refs/tags/"
@@ -272,7 +272,7 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 					gitJobFomCluster.Status.Commit = revision
 					// if syncInterval is not set and webhook is configured, set it to 1 hour
 					if gitjob.Spec.SyncInterval == 0 {
-						gitJobFomCluster.Spec.SyncInterval = 3600
+						gitJobFomCluster.Spec.SyncInterval = webhookDefaultSyncInterval
 					}
 					return w.client.Status().Update(r.Context(), &gitJobFomCluster)
 				}); err != nil {
