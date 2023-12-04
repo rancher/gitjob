@@ -5,11 +5,12 @@ package controller
 
 import (
 	"context"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	gitjobv1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
