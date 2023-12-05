@@ -38,7 +38,7 @@ func TestAddOrModifyWatchGitRepo(t *testing.T) {
 			},
 			expectedWatches: []string{"gitjob-test"},
 			expectedCalls: func(mockWatcher *mocks.MockWatcher) {
-				mockWatcher.EXPECT().StartFetchingEverySyncIntervalInBackground(ctx).Times(1)
+				mockWatcher.EXPECT().StartBackgroundSync(ctx).Times(1)
 			},
 		},
 		"gitrepo present with same syncInterval": {

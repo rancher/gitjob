@@ -42,9 +42,9 @@ func NewWatch(gitJob v1.GitJob, client client.Client) Watcher {
 	}
 }
 
-// StartFetchingEverySyncIntervalInBackground fetches the latest commit every syncInternal in a goroutine.
-func (w *Watch) StartFetchingEverySyncIntervalInBackground(ctx context.Context) {
-	go w.startFetchingEverySyncInterval(ctx, time.NewTicker(calculateSyncInterval(w.gitJob)))
+// StartBackgroundSync fetches the latest commit every syncInternal in a goroutine.
+func (w *Watch) StartBackgroundSync(ctx context.Context) {
+	go w.fetchBySyncInterval(ctx, time.NewTicker(calculateSyncInterval(w.gitJob)))
 }
 
 // Finish stops watching for changes in the git repo.
@@ -54,7 +54,7 @@ func (w *Watch) Finish() {
 
 func (w *Watch) Restart(ctx context.Context) {
 	w.Finish()
-	w.StartFetchingEverySyncIntervalInBackground(ctx)
+	w.StartBackgroundSync(ctx)
 }
 
 func (w *Watch) UpdateGitJob(gitJob v1.GitJob) {
@@ -65,7 +65,7 @@ func (w *Watch) GetSyncInterval() int {
 	return w.gitJob.Spec.SyncInterval
 }
 
-func (w *Watch) startFetchingEverySyncInterval(ctx context.Context, ticker *time.Ticker) {
+func (w *Watch) fetchBySyncInterval(ctx context.Context, ticker *time.Ticker) {
 	w.log.V(1).Info("start watching latest commit", "gitjob-name", w.gitJob.Name)
 	defer ticker.Stop()
 	w.done = make(chan bool)

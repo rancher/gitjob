@@ -15,7 +15,7 @@ import (
 )
 
 type Watcher interface {
-	StartFetchingEverySyncIntervalInBackground(ctx context.Context)
+	StartBackgroundSync(ctx context.Context)
 	Finish()
 	Restart(ctx context.Context)
 	UpdateGitJob(gitJob v1.GitJob)
@@ -46,7 +46,7 @@ func (h *Handler) AddOrModifyGitRepoWatch(ctx context.Context, gitJob v1.GitJob)
 	watch, found := h.watches[key]
 	if !found {
 		h.watches[key] = h.createWatch(gitJob, h.client)
-		h.watches[key].StartFetchingEverySyncIntervalInBackground(ctx)
+		h.watches[key].StartBackgroundSync(ctx)
 	} else {
 		oldSyncInterval := watch.GetSyncInterval()
 		watch.UpdateGitJob(gitJob)

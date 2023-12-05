@@ -73,16 +73,16 @@ func (mr *MockWatcherMockRecorder) Restart(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Restart", reflect.TypeOf((*MockWatcher)(nil).Restart), arg0)
 }
 
-// StartFetchingEverySyncIntervalInBackground mocks base method.
-func (m *MockWatcher) StartFetchingEverySyncIntervalInBackground(arg0 context.Context) {
+// StartBackgroundSync mocks base method.
+func (m *MockWatcher) StartBackgroundSync(arg0 context.Context) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StartFetchingEverySyncIntervalInBackground", arg0)
+	m.ctrl.Call(m, "StartBackgroundSync", arg0)
 }
 
-// StartFetchingEverySyncIntervalInBackground indicates an expected call of StartFetchingEverySyncIntervalInBackground.
-func (mr *MockWatcherMockRecorder) StartFetchingEverySyncIntervalInBackground(arg0 interface{}) *gomock.Call {
+// StartBackgroundSync indicates an expected call of StartBackgroundSync.
+func (mr *MockWatcherMockRecorder) StartBackgroundSync(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartFetchingEverySyncIntervalInBackground", reflect.TypeOf((*MockWatcher)(nil).StartFetchingEverySyncIntervalInBackground), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartBackgroundSync", reflect.TypeOf((*MockWatcher)(nil).StartBackgroundSync), arg0)
 }
 
 // UpdateGitJob mocks base method.

@@ -67,7 +67,7 @@ func TestStartFetchingEverySyncInterval(t *testing.T) {
 				w.Finish()
 			}()
 
-			w.startFetchingEverySyncInterval(ctx, ticker)
+			w.fetchBySyncInterval(ctx, ticker)
 
 			updatedGitJob := v1.GitJob{}
 			err = client.Get(ctx, types.NamespacedName{Name: gitJob.Name, Namespace: gitJob.Namespace}, &updatedGitJob)
