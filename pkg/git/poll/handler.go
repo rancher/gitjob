@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
+
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

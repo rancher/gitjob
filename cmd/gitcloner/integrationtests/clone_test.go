@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rancher/gitjob/cmd/gitcloner/cmd"
+	"github.com/rancher/gitjob/cmd/gitcloner/gogit"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -21,8 +24,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cp "github.com/otiai10/copy"
-	"github.com/rancher/gitjob/cmd/gitcloner/cmd"
-	"github.com/rancher/gitjob/cmd/gitcloner/gogit"
 	"github.com/testcontainers/testcontainers-go"
 	"golang.org/x/crypto/ssh"
 )

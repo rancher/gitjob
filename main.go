@@ -10,22 +10,21 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/rancher/gitjob/pkg/webhook"
-
 	gitjobv1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
 	"github.com/rancher/gitjob/pkg/controller"
 	"github.com/rancher/gitjob/pkg/git/poll"
+	"github.com/rancher/gitjob/pkg/webhook"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var (
