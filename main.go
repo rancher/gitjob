@@ -38,6 +38,14 @@ func init() {
 	utilruntime.Must(gitjobv1.AddToScheme(scheme))
 }
 
+type flags struct {
+	metricsAddr          string
+	enableLeaderElection bool
+	image                string
+	listen               string
+	debug                bool
+}
+
 func main() {
 	ctx := ctrl.SetupSignalHandler()
 	if err := run(ctx); err != nil {
@@ -48,6 +56,44 @@ func main() {
 
 func run(ctx context.Context) error {
 	namespace := os.Getenv("NAMESPACE")
+	flags := bindFlags()
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: flags.metricsAddr,
+		},
+		LeaderElection:          flags.enableLeaderElection,
+		LeaderElectionID:        "gitjob-leader",
+		LeaderElectionNamespace: namespace,
+	})
+	if err != nil {
+		return err
+	}
+	reconciler := &controller.GitJobReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Image:     flags.image,
+		GitPoller: poll.NewHandler(mgr.GetClient()),
+		Log:       ctrl.Log.WithName("gitjob-reconciler"),
+	}
+
+	group := errgroup.Group{}
+	group.Go(func() error {
+		return startWebhook(ctx, namespace, flags.listen, mgr.GetClient(), mgr.GetCache())
+	})
+	group.Go(func() error {
+		setupLog.Info("starting manager")
+		if err = reconciler.SetupWithManager(mgr); err != nil {
+			return err
+		}
+
+		return mgr.Start(ctx)
+	})
+
+	return group.Wait()
+}
+
+func bindFlags() flags {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var image string
@@ -67,41 +113,13 @@ func run(ctx context.Context) error {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	flag.Parse()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsAddr,
-		},
-		LeaderElection:          enableLeaderElection,
-		LeaderElectionID:        "fleet-gitjob-leader",
-		LeaderElectionNamespace: namespace,
-	})
-	if err != nil {
-		return err
+	return flags{
+		metricsAddr:          metricsAddr,
+		enableLeaderElection: enableLeaderElection,
+		image:                image,
+		listen:               listen,
+		debug:                debug,
 	}
-
-	group := errgroup.Group{}
-
-	group.Go(func() error {
-		return startWebhook(ctx, namespace, listen, mgr.GetClient(), mgr.GetCache())
-	})
-
-	group.Go(func() error {
-		setupLog.Info("starting manager")
-		if err = (&controller.GitJobReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Image:     image,
-			GitPoller: poll.NewHandler(mgr.GetClient()),
-			Log:       ctrl.Log.WithName("gitjob-reconciler"),
-		}).SetupWithManager(mgr); err != nil {
-			return err
-		}
-
-		return mgr.Start(ctx)
-	})
-
-	return group.Wait()
 }
 
 func startWebhook(ctx context.Context, namespace string, addr string, client client.Client, cacheClient cache.Cache) error {
@@ -123,7 +141,7 @@ func startWebhook(ctx context.Context, namespace string, addr string, client cli
 		server.Shutdown(context.Background())
 	}()
 
-	if err := server.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
