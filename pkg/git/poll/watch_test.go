@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestStartFetchingEverySyncInterval(t *testing.T) {
+func TestFetchBySyncInterval(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
