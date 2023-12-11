@@ -137,7 +137,9 @@ func startWebhook(ctx context.Context, namespace string, addr string, client cli
 
 	go func() {
 		<-ctx.Done()
-		server.Shutdown(context.Background())
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		server.Shutdown(shutdownCtx)
 	}()
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
