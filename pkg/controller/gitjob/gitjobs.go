@@ -3,6 +3,7 @@ package gitjob
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -243,6 +244,7 @@ func (h Handler) generateJob(obj *v1.GitJob) (*batchv1.Job, error) {
 				Value: obj.Status.Event,
 			},
 		)
+		job.Spec.Template.Spec.Containers[i].Env = append(job.Spec.Template.Spec.Containers[i].Env, proxyEnvVars()...)
 	}
 
 	return job, nil
@@ -311,6 +313,7 @@ func (h Handler) generateInitContainer(obj *v1.GitJob) (corev1.Container, error)
 		Image:        h.image,
 		Name:         "gitcloner-initializer",
 		VolumeMounts: volumeMounts,
+		Env:          proxyEnvVars(),
 		SecurityContext: &corev1.SecurityContext{
 			AllowPrivilegeEscalation: &[]bool{false}[0],
 			ReadOnlyRootFilesystem:   &[]bool{true}[0],
@@ -322,4 +325,15 @@ func (h Handler) generateInitContainer(obj *v1.GitJob) (corev1.Container, error)
 			},
 		},
 	}, nil
+}
+
+func proxyEnvVars() []corev1.EnvVar {
+	var envVars []corev1.EnvVar
+	for _, envVar := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"} {
+		if val, ok := os.LookupEnv(envVar); ok {
+			envVars = append(envVars, corev1.EnvVar{Name: envVar, Value: val})
+		}
+	}
+
+	return envVars
 }
