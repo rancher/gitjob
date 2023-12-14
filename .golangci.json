@@ -15,6 +15,20 @@
       "unused"
     ]
   },
+  "linters-settings": {
+    "revive": {
+      "rules": [
+        {
+          "name": "blank-imports",
+          "severity": "warning"
+        },
+        {
+          "name": "unexported-return",
+          "severity": "warning"
+        }
+      ]
+    }
+  },
   "run": {
     "skip-files": [
       "/zz_generated_"
