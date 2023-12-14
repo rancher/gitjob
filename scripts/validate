@@ -9,7 +9,7 @@ if ! command -v golangci-lint; then	echo Running: go fmt
 fi
 
 echo Running: golangci-lint
-golangci-lint run
+golangci-lint run --config .golangci.json
 
 echo Verifying modules
 go mod verify
