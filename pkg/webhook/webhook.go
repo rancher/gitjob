@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+
+	"github.com/go-playground/webhooks/v6/azuredevops"
 	gogsclient "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
 	v1controller "github.com/rancher/gitjob/pkg/generated/controllers/gitjob.cattle.io/v1"
@@ -47,6 +49,7 @@ type Webhook struct {
 	bitbucket       *bitbucket.Webhook
 	bitbucketServer *bitbucketserver.Webhook
 	gogs            *gogs.Webhook
+	azureDevops     *azuredevops.Webhook
 }
 
 func New(ctx context.Context, rContext *types.Context) *Webhook {
@@ -90,6 +93,10 @@ func (w *Webhook) onSecretChange(_ string, secret *corev1.Secret) (*corev1.Secre
 	if err != nil {
 		return nil, err
 	}
+	w.azureDevops, err = azuredevops.New()
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -110,6 +117,8 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		payload, err = w.bitbucket.Parse(r, bitbucket.RepoPushEvent)
 	case r.Header.Get("X-Event-Key") != "":
 		payload, err = w.bitbucketServer.Parse(r, bitbucketserver.RepositoryReferenceChangedEvent)
+	case r.Header.Get("X-Vss-Activityid") != "" || r.Header.Get("X-Vss-Subscriptionid") != "":
+		payload, err = w.azureDevops.Parse(r, azuredevops.GitPushEventType)
 	default:
 		logrus.Debug("Ignoring unknown webhook event")
 		return
@@ -130,14 +139,26 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		branch, tag = getBranchTagFromRef(t.Ref)
 		revision = t.After
 		repoURLs = append(repoURLs, t.Repository.HTMLURL)
+		if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+			logAndReturn(rw, err)
+			return
+		}
 	case gitlab.PushEventPayload:
 		branch, tag = getBranchTagFromRef(t.Ref)
 		revision = t.CheckoutSHA
 		repoURLs = append(repoURLs, t.Project.WebURL)
+		if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+			logAndReturn(rw, err)
+			return
+		}
 	case gitlab.TagEventPayload:
 		branch, tag = getBranchTagFromRef(t.Ref)
 		revision = t.CheckoutSHA
 		repoURLs = append(repoURLs, t.Project.WebURL)
+		if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+			logAndReturn(rw, err)
+			return
+		}
 	// https://support.atlassian.com/bitbucket-cloud/docs/event-payloads/#Push
 	case bitbucket.RepoPushPayload:
 		repoURLs = append(repoURLs, t.Repository.Links.HTML.Href)
@@ -148,7 +169,10 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			} else if change.New.Type == "tag" {
 				tag = change.New.Name
 			}
-			break
+			if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+				logAndReturn(rw, err)
+				return
+			}
 		}
 	case bitbucketserver.RepositoryReferenceChangedPayload:
 		for _, l := range t.Repository.Links["clone"].([]interface{}) {
@@ -163,31 +187,50 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		for _, change := range t.Changes {
 			revision = change.ToHash
 			branch, tag = getBranchTagFromRef(change.ReferenceId)
-			break
+			if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+				logAndReturn(rw, err)
+				return
+			}
 		}
 	case gogsclient.PushPayload:
 		repoURLs = append(repoURLs, t.Repo.HTMLURL)
 		branch, tag = getBranchTagFromRef(t.Ref)
 		revision = t.After
+		if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+			logAndReturn(rw, err)
+			return
+		}
+	case azuredevops.GitPushEvent:
+		repoURLs = append(repoURLs, t.Resource.Repository.RemoteURL)
+		for _, refUpdate := range t.Resource.RefUpdates {
+			branch, tag = getBranchTagFromRef(refUpdate.Name)
+			revision = refUpdate.NewObjectID
+			if err := w.processGitPushEvent(repoURLs, tag, branch, revision); err != nil {
+				logAndReturn(rw, err)
+				return
+			}
+		}
 	}
 
+	rw.WriteHeader(200)
+	rw.Write([]byte("succeeded"))
+}
+
+func (w *Webhook) processGitPushEvent(repoURLs []string, tag, branch, revision string) error {
 	gitjobs, err := w.gitjobs.Cache().List("", labels.Everything())
 	if err != nil {
-		logAndReturn(rw, err)
-		return
+		return err
 	}
 
 	for _, repo := range repoURLs {
 		u, err := url.Parse(repo)
 		if err != nil {
-			logAndReturn(rw, err)
-			return
+			return err
 		}
 		regexpStr := `(?i)(http://|https://|\w+@|ssh://(\w+@)?)` + u.Hostname() + "(:[0-9]+|)[:/]" + u.Path[1:] + "(\\.git)?"
 		repoRegexp, err := regexp.Compile(regexpStr)
 		if err != nil {
-			logAndReturn(rw, err)
-			return
+			return err
 		}
 		for _, gitjob := range gitjobs {
 			if gitjob.Spec.Git.Revision != "" {
@@ -229,22 +272,20 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				dp.Status.Commit = revision
 				newObj, err := w.gitjobs.UpdateStatus(dp)
 				if err != nil {
-					logAndReturn(rw, err)
-					return
+					return err
 				}
 				// if syncInterval is not set and webhook is configured, set it to 1 hour
 				if newObj.Spec.SyncInterval == 0 {
 					newObj.Spec.SyncInterval = 3600
 					if _, err := w.gitjobs.Update(newObj); err != nil {
-						logAndReturn(rw, err)
-						return
+						return err
 					}
 				}
 			}
 		}
 	}
-	rw.WriteHeader(200)
-	rw.Write([]byte("succeeded"))
+
+	return nil
 }
 
 func logAndReturn(rw http.ResponseWriter, err error) {
