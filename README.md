@@ -213,7 +213,7 @@ API types are defined in [here](./pkg/apis/gitjob.cattle.io/v1/types.go)
 Part of this project is built upon [Tekton](https://github.com/tektoncd).
 
 ## License
-Copyright (c) 2020 [Rancher Labs, Inc.](http://rancher.com)
+Copyright (c) 2020 - 2024 [SUSE LLC](https://suse.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
