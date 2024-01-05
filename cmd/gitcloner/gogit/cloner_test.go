@@ -2,6 +2,8 @@ package gogit
 
 import (
 	"errors"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"os"
 	"testing"
 
@@ -171,6 +173,10 @@ udiSlDctMM/X3ZM2JN5M1rtAJ2WR3ZQtmWbOjZAbG2Eq
 
 			if !cmp.Equal(cloneOptsCalled, test.expectedCloneOpts, sshKeyComparer) {
 				t.Fatalf("expected options %v, got %v", test.expectedCloneOpts, cloneOptsCalled)
+			}
+
+			if !cmp.Equal(transport.UnsupportedCapabilities, []capability.Capability{capability.ThinPack}) {
+				t.Errorf("expected transport.UnsupportedCapabilities []capability.Capability{capability.ThinPack}, got %v", transport.UnsupportedCapabilities)
 			}
 		})
 	}
