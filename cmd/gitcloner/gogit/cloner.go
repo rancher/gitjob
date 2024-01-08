@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	httpgit "github.com/go-git/go-git/v5/plumbing/transport/http"
 	gossh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -39,6 +40,12 @@ func NewCloner() *Cloner {
 }
 
 func (c *Cloner) CloneRepo(opts *cmd.Options) error {
+	// Azure DevOps requires capabilities multi_ack / multi_ack_detailed,
+	// which are not fully implemented and by default are included in
+	// transport.UnsupportedCapabilities.
+	transport.UnsupportedCapabilities = []capability.Capability{
+		capability.ThinPack,
+	}
 	auth, err := createAuthFromOpts(opts)
 	if err != nil {
 		return err
