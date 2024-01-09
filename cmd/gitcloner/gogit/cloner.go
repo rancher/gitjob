@@ -43,6 +43,9 @@ func (c *Cloner) CloneRepo(opts *cmd.Options) error {
 	// Azure DevOps requires capabilities multi_ack / multi_ack_detailed,
 	// which are not fully implemented and by default are included in
 	// transport.UnsupportedCapabilities.
+	// Public repos in Azure can't be cloned.
+	// This can be removed once go-git implements the git v2 protocol.
+	// https://github.com/go-git/go-git/issues/64
 	transport.UnsupportedCapabilities = []capability.Capability{
 		capability.ThinPack,
 	}
