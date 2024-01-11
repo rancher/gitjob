@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +39,7 @@ const (
 	gogsFingerPrint = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOLWGeeq/e1mK/zH47UeQeMtdh+NEz6j7xp5cAINcV2pPWgAsuyh5dumMv1RkC1rr0pmWekCoMnR2c4+PllRqrQ="
 	gogsUser        = "test"
 	gogsPass        = "pass"
+	startupTimeout  = 60 * time.Second
 )
 
 var (
@@ -51,7 +51,7 @@ var (
 func TestLatestCommit_NoAuth(t *testing.T) {
 	ctx := context.Background()
 	container, url, err := createGogsContainer(ctx, createTempFolder(t))
-	require.NoError(t, err)
+	require.NoError(t, err, "creating gogs container failed")
 	defer terminateContainer(ctx, container, t)
 
 	tests := map[string]struct {
@@ -103,7 +103,7 @@ func TestLatestCommit_NoAuth(t *testing.T) {
 func TestLatestCommit_BasicAuth(t *testing.T) {
 	ctx := context.Background()
 	container, url, err := createGogsContainer(ctx, createTempFolder(t))
-	require.NoError(t, err)
+	require.NoError(t, err, "creating gogs container failed")
 	defer terminateContainer(ctx, container, t)
 
 	tests := map[string]struct {
@@ -158,7 +158,7 @@ func TestLatestCommit_BasicAuth(t *testing.T) {
 func TestLatestCommitSSH(t *testing.T) {
 	ctx := context.Background()
 	container, _, err := createGogsContainer(ctx, createTempFolder(t))
-	require.NoError(t, err)
+	require.NoError(t, err, "creating gogs container failed")
 	defer terminateContainer(ctx, container, t)
 	privateKey, err := createAndAddKeys()
 	require.NoError(t, err)
@@ -228,6 +228,7 @@ func TestLatestCommitSSH(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
 			secret := &v1.Secret{
 				Data: map[string][]byte{
 					v1.SSHAuthPrivateKey: []byte(privateKey),
@@ -238,8 +239,11 @@ func TestLatestCommitSSH(t *testing.T) {
 			secretGetter := &secretGetterMock{secret: secret}
 			latestCommit, err := git.LatestCommit(test.gitjob, secretGetter)
 
-			if !reflect.DeepEqual(err, test.expectedErr) {
-				t.Errorf("expecter error is: %v, but got %v", test.expectedErr, err)
+			// works with nil and wrapped errors
+			if test.expectedErr == nil {
+				require.NoError(err)
+			} else {
+				require.Contains(test.expectedErr.Error(), err.Error())
 			}
 
 			if latestCommit != test.expectedCommit {
@@ -257,7 +261,10 @@ func createGogsContainer(ctx context.Context, tmpDir string) (testcontainers.Con
 	req := testcontainers.ContainerRequest{
 		Image:        "gogs/gogs:0.13",
 		ExposedPorts: []string{"3000/tcp", "22/tcp"},
-		WaitingFor:   wait.ForHTTP("/").WithPort("3000/tcp"),
+		WaitingFor: wait.ForAll(
+			wait.ForHTTP("/").WithPort("3000/tcp").WithStartupTimeout(startupTimeout),
+			wait.ForListeningPort("22/tcp").WithStartupTimeout(startupTimeout),
+		),
 		Mounts: testcontainers.ContainerMounts{
 			{
 				Source: testcontainers.GenericBindMountSource{HostPath: tmpDir},
