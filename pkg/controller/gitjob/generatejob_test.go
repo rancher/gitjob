@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/rancher/gitjob/internal/mocks"
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
-	corev1controller "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	corev1controller "github.com/rancher/wrangler/v2/pkg/generated/controllers/core/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

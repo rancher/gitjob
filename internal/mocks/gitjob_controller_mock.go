@@ -12,7 +12,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
 	v10 "github.com/rancher/gitjob/pkg/generated/controllers/gitjob.cattle.io/v1"
-	generic "github.com/rancher/wrangler/pkg/generic"
+	generic "github.com/rancher/wrangler/v2/pkg/generic"
 	v11 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
