@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-playground/webhooks/v6/azuredevops"
+	"github.com/rancher/gitjob/pkg/webhook/azuredevops"
+
 	"github.com/golang/mock/gomock"
 	"github.com/rancher/gitjob/internal/mocks"
 	v1 "github.com/rancher/gitjob/pkg/apis/gitjob.cattle.io/v1"
