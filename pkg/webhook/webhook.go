@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	goPlaygroundAzuredevops "github.com/go-playground/webhooks/v6/azuredevops"
+	"github.com/rancher/gitjob/pkg/webhook/azuredevops"
+
 	"github.com/Masterminds/semver/v3"
 	gogsclient "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
@@ -31,6 +34,8 @@ const (
 	bitbucketKey       = "bitbucket"
 	bitbucketServerKey = "bitbucket-server"
 	gogsKey            = "gogs"
+	azureUsername      = "azure-username"
+	azurePassword      = "azure-password"
 
 	branchRefPrefix = "refs/heads/"
 	tagRefPrefix    = "refs/tags/"
@@ -46,6 +51,7 @@ type Webhook struct {
 	bitbucket       *bitbucket.Webhook
 	bitbucketServer *bitbucketserver.Webhook
 	gogs            *gogs.Webhook
+	azureDevops     *azuredevops.Webhook
 }
 
 func New(ctx context.Context, rContext *types.Context) *Webhook {
@@ -89,6 +95,11 @@ func (w *Webhook) onSecretChange(_ string, secret *corev1.Secret) (*corev1.Secre
 	if err != nil {
 		return nil, err
 	}
+	w.azureDevops, err = azuredevops.New(azuredevops.Options.BasicAuth(string(secret.Data[azureUsername]), string(secret.Data[azurePassword])))
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -109,6 +120,8 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		payload, err = w.bitbucket.Parse(r, bitbucket.RepoPushEvent)
 	case r.Header.Get("X-Event-Key") != "":
 		payload, err = w.bitbucketServer.Parse(r, bitbucketserver.RepositoryReferenceChangedEvent)
+	case r.Header.Get("X-Vss-Activityid") != "" || r.Header.Get("X-Vss-Subscriptionid") != "":
+		payload, err = w.azureDevops.Parse(r, goPlaygroundAzuredevops.GitPushEventType)
 	default:
 		logrus.Debug("Ignoring unknown webhook event")
 		return
@@ -168,6 +181,13 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		repoURLs = append(repoURLs, t.Repo.HTMLURL)
 		branch, tag = getBranchTagFromRef(t.Ref)
 		revision = t.After
+	case goPlaygroundAzuredevops.GitPushEvent:
+		repoURLs = append(repoURLs, t.Resource.Repository.RemoteURL)
+		for _, refUpdate := range t.Resource.RefUpdates {
+			branch, tag = getBranchTagFromRef(refUpdate.Name)
+			revision = refUpdate.NewObjectID
+			break
+		}
 	}
 
 	gitjobs, err := w.gitjobs.Cache().List("", labels.Everything())
