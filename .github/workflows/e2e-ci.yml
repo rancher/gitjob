@@ -14,7 +14,6 @@ on:
 env:
   GOARCH: amd64
   CGO_ENABLED: 0
-  SETUP_GO_VERSION: '1.19.*'
 
 jobs:
   e2e-gitjob-test:
@@ -23,8 +22,8 @@ jobs:
       matrix:
         k3s_version:
           # k3d version list k3s | sed 's/+/-/' | sort -h
-          # - v1.24.1-k3s1
-          - v1.22.10-k3s1
+          - v1.24.17-k3s1
+          - v1.27.9-k3s1
     steps:
       -
         uses: actions/checkout@v3
@@ -33,7 +32,8 @@ jobs:
       -
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ env.SETUP_GO_VERSION }}
+          go-version-file: 'go.mod'
+          check-latest: true
       -
         uses: actions/cache@v3
         with:
