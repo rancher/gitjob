@@ -1,3 +1,7 @@
+> [!WARNING]
+> This repository is no longer actively maintained, except for `release/fleet/*` branches used for Fleet backports.
+> See [rancher/fleet](https://github.com/rancher/fleet) for more recent contents and issues.
+
 gitjob
 ========
 
