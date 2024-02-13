@@ -21,7 +21,7 @@ import (
 	"github.com/rancher/wrangler/pkg/kstatus"
 	"github.com/rancher/wrangler/pkg/name"
 
-	giturls "github.com/whilp/git-urls"
+	giturls "github.com/rancher/gitjob/pkg/git-urls"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
