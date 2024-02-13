@@ -28,7 +28,6 @@ require (
 	// found in steve. This is used just for testing.
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/urfave/cli v1.22.14
-	github.com/whilp/git-urls v1.0.0
 	golang.org/x/crypto v0.18.0
 	gopkg.in/go-playground/webhooks.v5 v5.17.0
 	gotest.tools v2.2.0+incompatible
@@ -39,7 +38,11 @@ require (
 	sigs.k8s.io/cli-utils v0.33.0
 )
 
-require github.com/rancher/wrangler/v2 v2.1.2
+require (
+	github.com/go-playground/webhooks/v6 v6.3.0
+	github.com/rancher/wrangler/v2 v2.1.2
+	github.com/whilp/git-urls v1.0.0
+)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -70,7 +73,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
-	github.com/go-playground/webhooks/v6 v6.3.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
