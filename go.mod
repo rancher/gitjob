@@ -11,6 +11,7 @@ replace (
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-git/go-git/v5 v5.11.0
+	github.com/go-playground/webhooks/v6 v6.3.0
 	github.com/gogits/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
@@ -21,6 +22,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rancher/gitjob/pkg/apis v0.0.0-00010101000000-000000000000
 	github.com/rancher/lasso v0.0.0-20230629200414-8a54b32e6792
+	github.com/rancher/wrangler/v2 v2.1.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
@@ -36,12 +38,6 @@ require (
 	k8s.io/apimachinery v0.28.5
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/cli-utils v0.33.0
-)
-
-require (
-	github.com/go-playground/webhooks/v6 v6.3.0
-	github.com/rancher/wrangler/v2 v2.1.2
-	github.com/whilp/git-urls v1.0.0
 )
 
 require (
