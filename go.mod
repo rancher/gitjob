@@ -23,7 +23,7 @@ require (
 	github.com/rancher/wrangler/v2 v2.1.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.26.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.19.0
