@@ -202,7 +202,10 @@ func (w *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			logAndReturn(rw, err)
 			return
 		}
-		regexpStr := `(?i)(http://|https://|\w+@|ssh://(\w+@)?)` + u.Hostname() + "(:[0-9]+|)[:/]" + u.Path[1:] + "(\\.git)?"
+
+		path := strings.Replace(u.Path[1:], "/_git/", "(/_git)?/", 1)
+		regexpStr := `(?i)(http://|https://|\w+@|ssh://(\w+@)?|git@(ssh\.)?)` + u.Hostname() +
+			"(:[0-9]+|)[:/](v\\d/)?" + path + "(\\.git)?"
 		repoRegexp, err := regexp.Compile(regexpStr)
 		if err != nil {
 			logAndReturn(rw, err)
@@ -270,7 +273,6 @@ func logAndReturn(rw http.ResponseWriter, err error) {
 	logrus.Errorf("Webhook processing failed: %s", err)
 	rw.WriteHeader(500)
 	rw.Write([]byte(err.Error()))
-	return
 }
 
 func HandleHooks(ctx context.Context, rContext *types.Context) http.Handler {
