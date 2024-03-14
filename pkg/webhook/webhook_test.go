@@ -92,8 +92,8 @@ func TestAzureDevopsWebhookWithSSHURL(t *testing.T) {
 	)
 
 	ctrl := gomock.NewController(t)
-	mockGitjob := fake.NewMockControllerInterface[*v1.GitJob, *v1.GitJobList](ctrl)
-	mockGitjobCache := fake.NewMockCacheInterface[*v1.GitJob](ctrl)
+	mockGitjob := mocks.NewMockGitJobController(ctrl)
+	mockGitjobCache := mocks.NewMockGitJobCache(ctrl)
 	gitjob := &v1.GitJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
