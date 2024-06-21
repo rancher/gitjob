@@ -32,20 +32,6 @@ builds:
     targets:
     - linux_amd64_v1
     - linux_arm64
-  -
-    id: gitcloner
-    main: ./cmd/gitcloner
-    binary: gitcloner-{{ .Os }}-{{ .Arch }}{{ if .Arm }}64{{ end }}
-    no_unique_dist_dir: true
-    # gcflags:
-    #   - all="-N -l"
-    ldflags:
-      - -w -s
-      - -X github.com/rancher/gitjob/pkg/version.GitCommit={{ .Commit }}
-      - -X github.com/rancher/gitjob/pkg/version.Version={{ .Tag }}
-    targets:
-    - linux_amd64_v1
-    - linux_arm64
  
 changelog:
   ## Delegate Changelog to release-drafter
@@ -71,7 +57,6 @@ dockers:
     # IDs to filter the binaries/packages.
     ids:
     - gitjob
-    - gitcloner
 
     # Templates of the Docker image names.
     image_templates:
@@ -97,7 +82,6 @@ dockers:
     goarch: arm64
     ids:
     - gitjob
-    - gitcloner
     image_templates:
     - "docker.io/rancher/gitjob:{{ .Tag }}-linux-arm64"
     dockerfile: package/Dockerfile
