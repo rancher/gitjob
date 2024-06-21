@@ -1,0 +1,120 @@
+
+---
+version: 2
+
+project_name: gitjob
+release:
+  prerelease: auto
+
+before:
+  hooks:
+    - go mod download
+
+archives:
+  - id: gitjob
+    format: binary
+    name_template: "{{ .Binary }}"
+    builds:
+      - gitjob
+
+builds:
+  -
+    id: gitjob
+    main: ./
+    binary: gitjob-{{ .Os }}-{{ .Arch }}{{ if .Arm }}64{{ end }}
+    no_unique_dist_dir: true
+    # gcflags:
+    #   - all="-N -l"
+    ldflags:
+      - -w -s
+      - -X github.com/rancher/gitjob/pkg/version.GitCommit={{ .Commit }}
+      - -X github.com/rancher/gitjob/pkg/version.Version={{ .Tag }}
+    targets:
+    - linux_amd64_v1
+    - linux_arm64
+  -
+    id: gitcloner
+    main: ./cmd/gitcloner
+    binary: gitcloner-{{ .Os }}-{{ .Arch }}{{ if .Arm }}64{{ end }}
+    no_unique_dist_dir: true
+    # gcflags:
+    #   - all="-N -l"
+    ldflags:
+      - -w -s
+      - -X github.com/rancher/gitjob/pkg/version.GitCommit={{ .Commit }}
+      - -X github.com/rancher/gitjob/pkg/version.Version={{ .Tag }}
+    targets:
+    - linux_amd64_v1
+    - linux_arm64
+ 
+changelog:
+  ## Delegate Changelog to release-drafter
+  disable: false
+  use: github
+
+env:
+  - CGO_ENABLED=0
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+dockers:
+  -
+    use: buildx
+
+    # GOOS of the built binaries/packages that should be used.
+    goos: linux
+
+    # GOARCH of the built binaries/packages that should be used.
+    goarch: amd64
+
+    # IDs to filter the binaries/packages.
+    ids:
+    - gitjob
+    - gitcloner
+
+    # Templates of the Docker image names.
+    image_templates:
+    - "docker.io/rancher/gitjob:{{ .Tag }}-linux-amd64"
+
+    # Path to the Dockerfile (from the project root).
+    dockerfile: package/Dockerfile
+
+    # Template of the docker build flags.
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/rancher/gitjob"
+    - "--build-arg=ARCH=amd64"
+    - "--build-arg=BUILD_ENV=goreleaser"
+    - "--platform=linux/amd64"
+  -
+    use: buildx
+    goos: linux
+    goarch: arm64
+    ids:
+    - gitjob
+    - gitcloner
+    image_templates:
+    - "docker.io/rancher/gitjob:{{ .Tag }}-linux-arm64"
+    dockerfile: package/Dockerfile
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/rancher/gitjob"
+    - "--build-arg=ARCH=arm64"
+    - "--build-arg=BUILD_ENV=goreleaser"
+    - "--platform=linux/arm64/v8"
+
+docker_manifests:
+  # https://goreleaser.com/customization/docker_manifest/
+  - name_template: "docker.io/rancher/gitjob:{{ .Tag }}"
+    image_templates:
+    - "docker.io/rancher/gitjob:{{ .Tag }}-linux-amd64"
+    - "docker.io/rancher/gitjob:{{ .Tag }}-linux-arm64"
