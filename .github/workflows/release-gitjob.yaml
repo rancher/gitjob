@@ -79,7 +79,7 @@ jobs:
           echo "publishing helm chart for (repo: $repo, tag: $tag, version: $version)"
 
           sed -i \
-              -e "s/tag:.*/tag: $tag/" \
+              -e "1,/tag:.*/s/tag:.*/tag: $tag/" \
               chart/values.yaml
 
           helm package --version="$version" --app-version="$version" -d ./dist ./chart
