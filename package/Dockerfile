@@ -1,7 +1,7 @@
 ARG BUILD_ENV=docker
 ARG ARCH
 
-FROM registry.suse.com/bci/bci-base:15.5 AS base
+FROM registry.suse.com/bci/bci-base:15.6 AS base
 RUN zypper -n update && \
     zypper -n install git openssh catatonit && \
     zypper -n clean -a
