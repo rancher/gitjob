@@ -82,6 +82,8 @@ jobs:
               -e "1,/tag:.*/s/tag:.*/tag: $tag/" \
               chart/values.yaml
 
+          go run pkg/crdgen/main.go > chart/templates/crds.yaml
+
           helm package --version="$version" --app-version="$version" -d ./dist ./chart
 
           for f in $(find dist/ -name '*.tgz'); do
