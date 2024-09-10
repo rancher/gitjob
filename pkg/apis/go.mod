@@ -1,6 +1,8 @@
 module github.com/rancher/gitjob/pkg/apis
 
-go 1.21
+go 1.22
+
+toolchain go1.22.7
 
 require (
 	github.com/rancher/wrangler/v2 v2.1.2
