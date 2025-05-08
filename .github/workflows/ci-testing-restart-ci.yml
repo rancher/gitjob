@@ -1,0 +1,134 @@
+name: Restart CI Tests for CI Testing PRs
+on:
+  workflow_run:
+    workflows: ["*"]  # Triggered after any workflow completes
+    types:
+      - completed
+
+env:
+  MAX_CI_RUNS: 20
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  restart-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git identity
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Find CI testing PRs with completed runs
+        id: find-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.event.workflow_run.head_branch }}"
+          if [[ "$BRANCH_NAME" == ci_testing_* ]]; then
+            echo "Found CI testing branch: $BRANCH_NAME"
+
+            # Find the PR associated with this branch
+            PR_NUMBER=$(gh pr list --head $BRANCH_NAME --json number -q '.[0].number')
+            if [ -n "$PR_NUMBER" ]; then
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+              echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+              echo "workflow_id=${{ github.event.workflow_run.workflow_id }}" >> $GITHUB_OUTPUT
+              echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+              echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
+            else
+              echo "No PR found for branch $BRANCH_NAME"
+              exit 0
+            fi
+          else
+            echo "Not a CI testing branch: $BRANCH_NAME"
+            exit 0
+          fi
+
+      - name: Check if all CI workflows have completed
+        id: check-workflows
+        if: steps.find-pr.outputs.pr_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.find-pr.outputs.pr_number }}"
+          BRANCH="${{ steps.find-pr.outputs.branch }}"
+
+          # Get the latest commit SHA on the branch
+          COMMIT_SHA=$(gh pr view $PR_NUMBER --json commits -q '.commits[-1].oid')
+          echo "Latest commit SHA: $COMMIT_SHA"
+
+          # Check if any workflows are still in progress (pending or queued)
+          IN_PROGRESS=$(gh api repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs --jq '.check_runs[] | select(.status != "completed") | .name')
+
+          if [ -z "$IN_PROGRESS" ]; then
+            echo "All CI workflows have completed for PR #$PR_NUMBER"
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "Some CI workflows are still in progress for PR #$PR_NUMBER:"
+            echo "$IN_PROGRESS"
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get workflow run count
+        id: run-count
+        if: steps.find-pr.outputs.pr_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.find-pr.outputs.pr_number }}"
+          BRANCH="${{ steps.find-pr.outputs.branch }}"
+          WORKFLOW_ID="${{ steps.find-pr.outputs.workflow_id }}"
+          WORKFLOW_NAME="${{ steps.find-pr.outputs.workflow_name }}"
+
+          # Count how many times this workflow has run on this branch
+          CURRENT_COUNT=$(gh api repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/runs \
+            --jq "[.workflow_runs[] | select(.head_branch == \"$BRANCH\")] | length")
+
+          echo "Workflow '$WORKFLOW_NAME' has run $CURRENT_COUNT times for branch $BRANCH"
+          echo "count=$CURRENT_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Restart workflow run if under limit
+        if: steps.find-pr.outputs.pr_number && steps.run-count.outputs.count < env.MAX_CI_RUNS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID="${{ steps.find-pr.outputs.run_id }}"
+          WORKFLOW_NAME="${{ steps.find-pr.outputs.workflow_name }}"
+          CURRENT_COUNT="${{ steps.run-count.outputs.count }}"
+
+          echo "Triggering run #$((CURRENT_COUNT + 1)) for workflow '$WORKFLOW_NAME'"
+          gh api --method POST repos/${{ github.repository }}/actions/runs/$RUN_ID/rerun
+          echo "Triggered new run for workflow '$WORKFLOW_NAME'"
+
+      - name: Check if all workflows reached limit
+        if: steps.find-pr.outputs.pr_number && steps.run-count.outputs.count >= env.MAX_CI_RUNS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.find-pr.outputs.pr_number }}"
+          WORKFLOW_NAME="${{ steps.find-pr.outputs.workflow_name }}"
+          BRANCH="${{ steps.find-pr.outputs.branch }}"
+
+          echo "Workflow '$WORKFLOW_NAME' completed ${{ env.MAX_CI_RUNS }} runs"
+
+          # Track workflow completion with a label
+          gh pr edit $PR_NUMBER --add-label "ci-complete-$(echo "$WORKFLOW_NAME" | tr ' ' '_')"
+
+          # Check if all workflows have reached their run limit
+          TOTAL_WORKFLOWS=$(gh api repos/${{ github.repository }}/actions/workflows --jq '.workflows | length')
+          COMPLETED_WORKFLOWS=$(gh pr view $PR_NUMBER --json labels -q '[.labels[].name | select(startswith("ci-complete-"))] | length')
+
+          if [ "$COMPLETED_WORKFLOWS" -ge "$TOTAL_WORKFLOWS" ]; then
+            echo "All workflows have completed ${{ env.MAX_CI_RUNS }} runs"
+            gh pr edit $PR_NUMBER --add-label "ci-testing-complete"
+            gh pr comment $PR_NUMBER --body "✅ Completed all CI test runs (${{ env.MAX_CI_RUNS }} per workflow)"
+            gh pr close $PR_NUMBER --comment "Closing PR after completing all CI test runs"
+          fi

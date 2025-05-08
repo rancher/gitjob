@@ -1,0 +1,63 @@
+name: Create CI Testing PR
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch for the PR (leave empty for default branch)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-test-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine base branch
+        id: base-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ inputs.base_branch }}" ]; then
+            echo "branch=${{ inputs.base_branch }}" >> $GITHUB_OUTPUT
+          else
+            DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+            echo "branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout base branch
+        run: git fetch origin ${{ steps.base-branch.outputs.branch }} && git checkout ${{ steps.base-branch.outputs.branch }}
+
+      - name: Set up Git identity
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Generate branch name with timestamp
+        id: branch-name
+        run: echo "branch=ci_testing_$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create new branch
+        run: git checkout -b ${{ steps.branch-name.outputs.branch }}
+
+      - name: Create empty commit
+        run: git commit --allow-empty -m "CI Testing - Empty PR"
+
+      - name: Push branch to remote
+        run: git push origin ${{ steps.branch-name.outputs.branch }}
+
+      - name: Create draft PR
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          gh pr create \
+            --base ${{ steps.base-branch.outputs.branch }} \
+            --head ${{ steps.branch-name.outputs.branch }} \
+            --title "CI Testing PR" \
+            --body "This PR is for CI testing purposes only and can be ignored." \
+            --draft
